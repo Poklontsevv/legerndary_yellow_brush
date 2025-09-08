@@ -65,7 +65,7 @@
         <div class="flex flex-col items-center gap-4">
             <button id="playButton" class="pixel-button text-2xl px-8 py-3 w-64">ИГРАТЬ</button>
             <button id="statsButton" class="pixel-button text-2xl px-8 py-3 w-64">СТАТИСТИКА</button>
-            <button id="settingsButton" class="pixel-button text-2xl px-8 py-3 w-64">НАСТРОЙКИ</button>
+            <button id="settingsButton" class="pixel-button text-2xl px-8 py-3 w-64">МАГАЗИН</button>
         </div>
     </div>
 
@@ -115,11 +115,15 @@
     </div>
     
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl">
-        <div class="h-full overflow-y-auto">
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col">
+        <!-- Non-scrolling header -->
+        <div class="flex-shrink-0">
             <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
             <p class="mb-6">Ваши монеты: <span id="shopCoinBalance" class="text-yellow-400">0</span></p>
-            
+        </div>
+        
+        <!-- Scrolling content -->
+        <div class="flex-grow overflow-y-auto" style="touch-action: pan-y;">
             <h3 class="text-xl mt-4 mb-2 text-cyan-400">Вид расчёски</h3>
             <div id="combShop" class="grid grid-cols-3 sm:grid-cols-5 gap-4 p-2 bg-gray-800"></div>
 
@@ -134,8 +138,24 @@
             
             <h3 class="text-xl mt-6 mb-2 text-cyan-400">Фон</h3>
             <div id="backgroundShop" class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-2 bg-gray-800"></div>
-
+        </div>
+        
+        <!-- Non-scrolling footer -->
+        <div class="flex-shrink-0">
             <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
+        </div>
+    </div>
+    
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="hidden absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center">
+        <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg">
+            <h3 class="text-2xl mb-4">Покупка товара</h3>
+            <p id="purchaseItemName" class="mb-6"></p>
+            <div class="flex flex-col gap-4">
+                <button id="buyWithCoinsBtn" class="pixel-button"></button>
+                <button id="buyWithStarsBtn" class="pixel-button bg-blue-500"></button>
+                <button id="cancelPurchaseBtn" class="pixel-button bg-red-500">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -183,12 +203,19 @@ const challengeRedStat = document.getElementById('challengeRedStat');
 const shopCoinBalance = document.getElementById('shopCoinBalance');
 const combColorShop = document.getElementById('combColorShop');
 const backgroundShop = document.getElementById('backgroundShop');
+// Purchase Modal
+const purchaseModal = document.getElementById('purchaseModal');
+const purchaseItemName = document.getElementById('purchaseItemName');
+const buyWithCoinsBtn = document.getElementById('buyWithCoinsBtn');
+const buyWithStarsBtn = document.getElementById('buyWithStarsBtn');
+const cancelPurchaseBtn = document.getElementById('cancelPurchaseBtn');
+
 
 // --- Game State & Data ---
 let userId = 'default_player';
 let gameMode = 'relax';
 let lives, score, collectedLetters, asmrActive, asmrEndTime;
-let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles;
+let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats;
 let gameLoopId;
 let keys = {};
 let isGameOver = false;
@@ -200,6 +227,7 @@ let coinSpawnRate = 6000; let lastCoinSpawn = 0;
 let letterSpawnRate = 15000; let lastLetterSpawn = 0;
 let heartSpawnRate = 80000; let lastHeartSpawn = 0;
 let cloudSpawnRate = 5000; let lastCloudSpawn = 0;
+let batSpawnRate = 10000; let lastBatSpawn = 0;
 
 // Challenge Mode
 let challengeTimer = 0; let speedMultiplier = 1.0; let challengeMinute = 0;
@@ -294,38 +322,55 @@ const DRAW_FUNCTIONS = {
         ctx.fillRect(0, 2.5, 10, 10);
         ctx.fill();
     },
+    drawDonut: (ctx, x, y, size) => {
+        const outerRadius = size / 2;
+        const innerRadius = size / 4;
+        const icingColor = `hsl(${Math.random() * 360}, 70%, 70%)`;
+        
+        ctx.fillStyle = '#d2b48c'; // Dough color
+        ctx.beginPath();
+        ctx.arc(x, y, outerRadius, 0, Math.PI * 2, false);
+        ctx.arc(x, y, innerRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+        
+        ctx.fillStyle = icingColor; // Icing color
+        ctx.beginPath();
+        ctx.arc(x, y, outerRadius * 0.9, 0, Math.PI * 2, false);
+        ctx.arc(x, y, innerRadius * 1.2, 0, Math.PI * 2, true);
+        ctx.fill();
+    }
 };
 
 const SHOP_ITEMS = {
     combs: [
-        { id: 'classic', name: 'Классика', cost: 0, draw: DRAW_FUNCTIONS.drawClassicComb },
-        { id: 'pumpkin', name: 'Тыква', cost: 25, draw: DRAW_FUNCTIONS.drawPumpkin },
-        { id: 'plane', name: 'Самолётик', cost: 25, draw: DRAW_FUNCTIONS.drawPaperPlane },
-        { id: 'choco', name: 'Шоколадка', cost: 25, draw: DRAW_FUNCTIONS.drawChocolate },
-        { id: 'gun', name: 'Пистолет', cost: 50, draw: DRAW_FUNCTIONS.drawGun },
+        { id: 'classic', name: 'Классика', cost: 0, starCost: 0, draw: DRAW_FUNCTIONS.drawClassicComb },
+        { id: 'pumpkin', name: 'Тыква', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPumpkin },
+        { id: 'plane', name: 'Самолётик', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPaperPlane },
+        { id: 'choco', name: 'Шоколадка', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawChocolate },
+        { id: 'gun', name: 'Пистолет', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawGun },
     ],
     bullets: [
-        { id: 'classic', name: 'Расчёски', cost: 0, draw: DRAW_FUNCTIONS.drawClassicBullet },
-        { id: 'candy', name: 'Конфеты', cost: 20, draw: DRAW_FUNCTIONS.drawCandyBullet },
-        { id: 'plane', name: 'Самолётики', cost: 20, draw: DRAW_FUNCTIONS.drawPlaneBullet },
-        { id: 'choco', name: 'Шоко-пули', cost: 20, draw: DRAW_FUNCTIONS.drawChocoBullet },
-        { id: 'real', name: 'Пули', cost: 40, draw: DRAW_FUNCTIONS.drawRealBullet },
+        { id: 'classic', name: 'Расчёски', cost: 0, starCost: 0, draw: DRAW_FUNCTIONS.drawClassicBullet },
+        { id: 'candy', name: 'Конфеты', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawCandyBullet },
+        { id: 'plane', name: 'Самолётики', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawPlaneBullet },
+        { id: 'choco', name: 'Шоко-пули', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawChocoBullet },
+        { id: 'real', name: 'Пули', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawRealBullet },
     ],
     trails: [
-        { id: 'none', name: 'Нет', cost: 0 },
-        { id: 'sparks', name: 'Искры', cost: 15, props: { color: '#facc15' } },
-        { id: 'smoke', name: 'Дым', cost: 15, props: { color: '#a1a1aa' } },
-        { id: 'rainbow', name: 'Радуга', cost: 30, props: { color: `hsl(${Math.random() * 360}, 100%, 70%)` } }
+        { id: 'none', name: 'Нет', cost: 0, starCost: 0 },
+        { id: 'sparks', name: 'Искры', cost: 0, starCost: 2, props: { color: '#facc15' } },
+        { id: 'smoke', name: 'Дым', cost: 0, starCost: 2, props: { color: '#a1a1aa' } },
+        { id: 'rainbow', name: 'Радуга', cost: 0, starCost: 4, props: { color: `hsl(${Math.random() * 360}, 100%, 70%)` } }
     ],
     colors: [
-        { id: '#fBBF24', name: 'Жёлтая', cost: 0 }, { id: '#34D399', name: 'Мятная', cost: 10 },
-        { id: '#F87171', name: 'Красная', cost: 10 }, { id: '#A78BFA', name: 'Лиловая', cost: 10 },
-        { id: '#60A5FA', name: 'Голубая', cost: 15 }, { id: '#F472B6', name: 'Розовая', cost: 15 },
-        { id: '#ffffff', name: 'Белая', cost: 20 }, { id: '#000000', name: 'Чёрная', cost: 20 },
+        { id: '#fBBF24', name: 'Жёлтая', cost: 0, starCost: 0 }, { id: '#34D399', name: 'Мятная', cost: 0, starCost: 1 },
+        { id: '#F87171', name: 'Красная', cost: 0, starCost: 1 }, { id: '#A78BFA', name: 'Лиловая', cost: 0, starCost: 1 },
+        { id: '#60A5FA', name: 'Голубая', cost: 0, starCost: 1 }, { id: '#F472B6', name: 'Розовая', cost: 0, starCost: 1 },
+        { id: '#ffffff', name: 'Белая', cost: 0, starCost: 1 }, { id: '#000000', name: 'Чёрная', cost: 0, starCost: 1 },
     ],
     backgrounds: [
-        { id: 'default', name: 'Небо', cost: 0, init: (c,ct) => {}, draw: (c,ct) => { ct.fillStyle = '#87CEEB'; ct.fillRect(0,0,c.width,c.height); }},
-        { id: 'space', name: 'Космос', cost: 10, 
+        { id: 'default', name: 'Небо', cost: 0, starCost: 0, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#ADD8E6'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'space', name: 'Космос', cost: 0, starCost: 8, 
             init: (c, ct) => { 
                 ct.stars = []; 
                 for(let i=0; i<100; i++) ct.stars.push({x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*1.5});
@@ -335,9 +380,41 @@ const SHOP_ITEMS = {
                 ct.fillStyle = '#FFF'; ct.stars.forEach(s => { s.x -= 0.1; if(s.x < 0) s.x = c.width; ct.beginPath(); ct.arc(s.x, s.y, s.r, 0, Math.PI*2); ct.fill(); }); 
             }
         },
-        { id: 'halloween', name: 'Хэллоуин', cost: 20, draw: (c,ct) => { ct.fillStyle = '#4c1d95'; ct.fillRect(0,0,c.width,c.height); }},
-        { id: 'mountains', name: 'Горы', cost: 20, draw: (c,ct) => { ct.fillStyle = '#a7f3d0'; ct.fillRect(0,0,c.width,c.height); ct.fillStyle = '#4b5563'; ct.beginPath(); ct.moveTo(0,c.height); ct.lineTo(c.width*0.3, c.height*0.6); ct.lineTo(c.width*0.6, c.height*0.8); ct.lineTo(c.width, c.height*0.7); ct.lineTo(c.width, c.height); ct.closePath(); ct.fill(); }},
-        { id: 'sweets', name: 'Сладости', cost: 20, draw: (c,ct) => { ct.fillStyle = '#fef3c7'; ct.fillRect(0,0,c.width,c.height); }}
+        { id: 'halloween', name: 'Хэллоуин', cost: 0, starCost: 8, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#4c1d95'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'mountains', name: 'Горы', cost: 0, starCost: 8, 
+            init: (c, ct) => {
+                ct.mountains = [];
+                for(let i=0; i<3; i++) {
+                    const startX = i * c.width / 2;
+                    ct.mountains.push({ x: startX, base: c.height, peak1x: startX + c.width*0.3, peak1y: c.height*0.6, peak2x: startX + c.width*0.6, peak2y: c.height*0.8, endX: startX + c.width});
+                }
+            },
+            draw: (c,ct) => { 
+                ct.fillStyle = '#ADD8E6'; ct.fillRect(0,0,c.width,c.height);
+                ct.mountains.forEach(m => {
+                    m.x -= 0.5; // Parallax speed
+                    if(m.x + m.endX < 0) m.x += c.width * 1.5;
+
+                    ctx.fillStyle = '#6b7280';
+                    ctx.beginPath();
+                    ctx.moveTo(m.x, m.base);
+                    ctx.lineTo(m.peak1x, m.peak1y);
+                    ctx.lineTo(m.peak2x, m.peak2y);
+                    ctx.lineTo(m.endX, m.base);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = 'white'; // Snow
+                    ctx.beginPath();
+                    ctx.moveTo(m.peak1x, m.peak1y);
+                    ctx.lineTo(m.peak1x - 20, m.peak1y + 40);
+                    ctx.lineTo(m.peak1x + 20, m.peak1y + 40);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+            }
+        },
+        { id: 'sweets', name: 'Сладости', cost: 0, starCost: 8, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#fef3c7'; ct.fillRect(0,0,c.width,c.height); }}
     ]
 };
 
@@ -345,12 +422,17 @@ const SHOP_ITEMS = {
 class Player {
     constructor() {
         this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 8;
-        this.color = gameData.shop.selectedColor;
-        this.drawFn = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb).draw;
         this.lastTrailTime = 0;
     }
-    draw(ctx, color) {
-        this.drawFn(ctx, this.color, this.width, this.height);
+    draw(ctx) {
+        // Find the correct draw function and color on every frame
+        const drawFn = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb).draw;
+        const color = gameData.shop.selectedColor;
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        drawFn(ctx, color, this.width, this.height);
+        ctx.restore();
     }
     update() {
         let dx = 0, dy = 0;
@@ -419,8 +501,9 @@ class Enemy { constructor() { this.width = 50; this.height = 50; this.x = canvas
 class RedEnemy extends Enemy { constructor() { super(); this.health = 2; this.speed = Math.random() * 1 + 1.5; this.shoots = true; } draw(ctx) { ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.75, this.y + this.height*0.8); ctx.lineTo(this.x + this.width * 0.5, this.y + this.height); ctx.lineTo(this.x + this.width * 0.25, this.y + this.height*0.8); ctx.lineTo(this.x, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.moveTo(this.x + this.width * 0.2, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.4, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.6, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.8, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.6, this.y + this.height * 0.5); ctx.stroke(); } }
 class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2.5, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
 class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw(ctx) { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
-class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw(ctx) { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed; } }
+class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw(ctx) { if (gameData.shop.selectedBackground === 'sweets') { DRAW_FUNCTIONS.drawDonut(ctx, this.x, this.y, this.size); } else { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } } update() { this.x -= this.speed; } }
 class ForegroundCloud extends Cloud { constructor() { super(); this.speed = (Math.random() * 1 + 1) * 2; this.opacity = 0.5; } }
+class Bat { constructor() { this.width = 40; this.height = 20; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 4 + 4; this.frame = 0; this.lastFrameTime = 0; } draw(ctx) { ctx.fillStyle = 'black'; ctx.beginPath(); const wingY = this.frame === 0 ? this.y : this.y + 10; ctx.moveTo(this.x, wingY); ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2); ctx.lineTo(this.x + this.width, wingY); ctx.closePath(); ctx.fill(); } update() { this.x -= this.speed; if (Date.now() - this.lastFrameTime > 100) { this.frame = 1 - this.frame; this.lastFrameTime = Date.now(); } } }
 class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.drawFn = (ctx) => { ctx.fillStyle = '#fca5a5'; ctx.fillRect(0, 0, this.width/2, this.height/2); }; } }
 
 // --- Game Data Functions ---
@@ -451,7 +534,7 @@ function init() {
 
     lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false;
     player = new Player(); 
-    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = [];
+    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = [];
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
     updateUI();
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
@@ -464,6 +547,7 @@ function spawnEntities(timestamp) {
     if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
     if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
     if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
+    if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
 }
 function handleShooting(timestamp) {
     if (timestamp - lastShotTime > shootInterval) {
@@ -525,15 +609,15 @@ function gameLoop(timestamp) {
     if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
     spawnEntities(timestamp); handleShooting(timestamp);
     
-    [clouds, particles, trailParticles, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
+    [clouds, particles, trailParticles, bats, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
     player.update(); foregroundClouds.forEach(c => c.update());
     
     // Draw order
-    [clouds, trailParticles, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { 
+    [clouds, trailParticles, bats, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { 
         if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
-        else arr.draw(ctx, gameData.shop.selectedColor); 
+        else arr.draw(ctx); 
     });
-    foregroundClouds.forEach(c => c.draw()); 
+    foregroundClouds.forEach(c => c.draw(ctx)); 
     if (isTouchDevice) drawJoystick();
     
     // Filtering
@@ -542,6 +626,7 @@ function gameLoop(timestamp) {
     particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
     clouds = clouds.filter(c => c.x + c.size * 2 > 0);
     foregroundClouds = foregroundClouds.filter(c => c.x + c.size * 2 > 0);
+    bats = bats.filter(b => b.x + b.width > 0);
     
     checkCollisions(); 
     gameLoopId = requestAnimationFrame(gameLoop);
@@ -565,14 +650,20 @@ function showScreen(screenId) {
     [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen].forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
 
+    if (screenId === 'settingsScreen') {
+        renderAllShops();
+        document.body.style.touchAction = 'auto';
+    } else {
+        document.body.style.touchAction = 'none';
+    }
+
     if (screenId === 'statsScreen') updateStatsScreen();
-    if (screenId === 'settingsScreen') renderAllShops();
+    
     if (screenId === 'mainMenu') {
         const menuCtx = menuCombCanvas.getContext('2d');
         menuCombCanvas.width = 192; menuCombCanvas.height = 192;
         const selectedComb = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
-        const playerInstance = { color: gameData.shop.selectedColor, width: 192, height: 192 };
-        selectedComb.draw.call(playerInstance, menuCtx, gameData.shop.selectedColor, 192, 192);
+        selectedComb.draw(menuCtx, gameData.shop.selectedColor, 192, 192);
         
         try {
             const user = window.Telegram.WebApp.initDataUnsafe.user;
@@ -607,9 +698,13 @@ function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, dr
         div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
         
         let itemDisplay = `<canvas class="mx-auto w-full"></canvas>`;
-        div.innerHTML = `${itemDisplay}<p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
+        let priceText = isUnlocked ? (isSelected ? 'Выбрано' : 'Выбрать') : `Монеты: ${item.cost}`;
+        if (!isUnlocked && item.starCost > 0) {
+            priceText += ` / Stars: ${item.starCost}`;
+        }
+        div.innerHTML = `${itemDisplay}<p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${priceText}</p>`;
         
-        div.onclick = () => handleShopClick(categoryKey, unlockedKey, selectedKey, item, isUnlocked);
+        div.onclick = () => handleShopClick(categoryKey, unlockedKey, selectedKey, item);
         container.appendChild(div);
 
         const itemCanvas = div.querySelector('canvas');
@@ -620,21 +715,85 @@ function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, dr
         }
     });
 }
-function handleShopClick(categoryKey, unlockedKey, selectedKey, item, isUnlocked) {
+function handleShopClick(categoryKey, unlockedKey, selectedKey, item) {
+    const isUnlocked = gameData.shop[unlockedKey].includes(item.id);
     if (isUnlocked) {
         gameData.shop[selectedKey] = item.id;
+        saveGameData();
+        renderAllShops();
     } else {
-        if (gameData.stats.totalCoins >= item.cost) {
-            gameData.stats.totalCoins -= item.cost;
-            gameData.shop[unlockedKey].push(item.id);
-            gameData.shop[selectedKey] = item.id;
-        } else {
-            return;
-        }
+        showPurchaseModal(categoryKey, unlockedKey, selectedKey, item);
     }
-    saveGameData();
-    renderAllShops();
 }
+function showPurchaseModal(categoryKey, unlockedKey, selectedKey, item) {
+    purchaseItemName.textContent = item.name;
+    
+    buyWithCoinsBtn.textContent = `Купить за ${item.cost} монет`;
+    buyWithCoinsBtn.disabled = gameData.stats.totalCoins < item.cost;
+    buyWithCoinsBtn.onclick = () => {
+        gameData.stats.totalCoins -= item.cost;
+        gameData.shop[unlockedKey].push(item.id);
+        gameData.shop[selectedKey] = item.id;
+        saveGameData();
+        renderAllShops();
+        hidePurchaseModal();
+    };
+
+    if (item.starCost > 0) {
+        buyWithStarsBtn.textContent = `Купить за ${item.starCost} Stars`;
+        buyWithStarsBtn.classList.remove('hidden');
+        buyWithStarsBtn.onclick = () => {
+            purchaseWithStars(categoryKey, unlockedKey, selectedKey, item);
+        };
+    } else {
+        buyWithStarsBtn.classList.add('hidden');
+    }
+    
+    cancelPurchaseBtn.onclick = hidePurchaseModal;
+    purchaseModal.classList.remove('hidden');
+}
+function hidePurchaseModal() {
+    purchaseModal.classList.add('hidden');
+}
+function purchaseWithStars(categoryKey, unlockedKey, selectedKey, item) {
+    try {
+        window.Telegram.WebApp.showConfirm(`Вы уверены, что хотите купить "${item.name}" за ${item.starCost} Telegram Stars?`, (confirmed) => {
+            if (confirmed) {
+                // ЭТО МЕСТО ДЛЯ НАСТОЯЩЕЙ ОПЛАТЫ
+                // 1. Ваш сервер должен сгенерировать ссылку для оплаты (invoice link)
+                // 2. Вы получаете эту ссылку и вызываете метод ниже:
+                /*
+                const invoiceLink = 'ССЫЛКА_ОТ_ВАШЕГО_СЕРВЕРА';
+                window.Telegram.WebApp.openInvoice(invoiceLink, (status) => {
+                    if (status === 'paid') {
+                        // ПЛАТЁЖ УСПЕШЕН
+                        gameData.shop[unlockedKey].push(item.id);
+                        gameData.shop[selectedKey] = item.id;
+                        saveGameData();
+                        renderAllShops();
+                        hidePurchaseModal();
+                    } else {
+                        // Платёж не удался или был отменён
+                        window.Telegram.WebApp.showAlert('Платёж не удался.');
+                    }
+                });
+                */
+
+                // СИМУЛЯЦИЯ УСПЕШНОЙ ПОКУПКИ (УДАЛИТЬ ДЛЯ РЕАЛЬНОГО ПРИЛОЖЕНИЯ)
+                console.log(`Симуляция покупки "${item.name}" за ${item.starCost} Stars`);
+                gameData.shop[unlockedKey].push(item.id);
+                gameData.shop[selectedKey] = item.id;
+                saveGameData();
+                renderAllShops();
+                hidePurchaseModal();
+            }
+        });
+    } catch (e) {
+        alert('Покупка через Telegram Stars доступна только внутри Telegram.');
+        hidePurchaseModal();
+    }
+}
+
 
 // --- Controls & Event Handlers ---
 function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
