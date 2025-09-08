@@ -216,7 +216,7 @@ const SHOP_ITEMS = {
 // --- Game Object Classes (condensed for brevity, no change in logic) ---
 class Player {
     constructor() {
-        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 7;
+        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 8; // Increased speed
         this.color = gameData.shop.selectedColor;
     }
     draw() {
@@ -463,9 +463,46 @@ document.querySelectorAll('.back-button').forEach(btn => {
 });
 
 window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
-function handleTouchStart(e) { e.preventDefault(); const touch = e.changedTouches[0]; if (joystick.active || touch.clientX > canvas.width / 3) return; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; }
-function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } }
-function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; } }
+
+// --- NEW JOYSTICK LOGIC ---
+function handleTouchStart(e) { 
+    e.preventDefault(); 
+    // Только первое касание активирует джойстик
+    if (joystick.active) return; 
+    const touch = e.changedTouches[0]; 
+    joystick.active = true; 
+    joystick.id = touch.identifier; 
+    // База джойстика появляется там, где коснулись
+    joystick.baseX = joystick.stickX = touch.clientX; 
+    joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; 
+}
+
+function handleTouchMove(e) { 
+    e.preventDefault(); 
+    if (!joystick.active) return; 
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); 
+    if (!touch) return; 
+    const newY = touch.clientY - canvas.getBoundingClientRect().top; 
+    const dx = touch.clientX - joystick.baseX; 
+    const dy = newY - joystick.baseY; 
+    const dist = Math.sqrt(dx * dx + dy * dy); 
+    if (dist > joystick.radius) { 
+        joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; 
+        joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; 
+    } else { 
+        joystick.stickX = touch.clientX; 
+        joystick.stickY = newY; 
+    } 
+}
+
+function handleTouchEnd(e) { 
+    const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); 
+    // Если отпустили именно тот палец, который управлял джойстиком
+    if (touch) { 
+        joystick.active = false; 
+        joystick.id = null; 
+    } 
+}
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
 
 window.addEventListener('resize', () => {
