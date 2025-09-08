@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ЛЕГЕНДАРНАЯ ЖЁЛТАЯ РАСЧЁСКА</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключаем скрипт Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Press+Start+2P', cursive;
+            touch-action: none;
+            overflow: hidden;
+            background-color: #1a202c;
+            color: #f1f5f9;
+        }
+ 
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .comb-float { animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        
+        .pixel-button {
+            background-color: #fBBF24; color: #1e293b; border: 4px solid #1e293b;
+            box-shadow: 6px 6px 0 #1e293b; transition: all 0.1s ease-in-out; transform: translate(0, 0);
+        }
+        .pixel-button:hover { box-shadow: 4px 4px 0 #1e293b; transform: translate(2px, 2px); }
+        .pixel-button:active { box-shadow: 2px 2px 0 #1e293b; transform: translate(4px, 4px); }
+        .pixel-button:disabled { background-color: #9ca3af; box-shadow: 6px 6px 0 #4b5563; color: #4b5563; }
+        
+        .shop-item { border: 4px solid #4b5563; cursor: pointer; }
+        .shop-item.selected { border-color: #fBBF24; box-shadow: 0 0 10px #fBBF24; }
+        .shop-item.locked { filter: grayscale(1) brightness(0.5); }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+    
+    <!-- Orientation Warning -->
+    <div id="orientationWarning" class="hidden absolute inset-0 bg-black bg-opacity-90 z-50 flex-col items-center justify-center text-center p-4">
+        <svg class="w-16 h-16 text-white mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        <p class="text-xl">Пожалуйста, поверните ваше устройство вертикально.</p>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="text-center p-4">
+        <p id="greeting" class="text-xl mb-4">Привет!</p>
+        <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6" style="text-shadow: 4px 4px 0px #000;">ЛЕГЕНДАРНАЯ</h1>
+        <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ЖЁЛТАЯ РАСЧЁСКА</h1>
+        <svg id="menuComb" class="w-48 h-48 mx-auto mb-8 comb-float" viewBox="0 0 100 100" fill="#fBBF24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M90,10 H10 C4.477,10,0,14.477,0,20 V40 H100 V20 C100,14.477,95.523,10,90,10 Z" />
+            <rect x="5" y="40" width="8" height="50" rx="3" /><rect x="18" y="40" width="8" height="50" rx="3" /><rect x="31" y="40" width="8" height="50" rx="3" /><rect x="44" y="40" width="8" height="50" rx="3" /><rect x="57" y="40" width="8" height="50" rx="3" /><rect x="70" y="40" width="8" height="50" rx="3" /><rect x="83" y="40" width="8" height="50" rx="3" />
+        </svg>
+        <div class="flex flex-col items-center gap-4">
+            <button id="playButton" class="pixel-button text-2xl px-8 py-3 w-64">ИГРАТЬ</button>
+            <button id="statsButton" class="pixel-button text-2xl px-8 py-3 w-64">СТАТИСТИКА</button>
+            <button id="settingsButton" class="pixel-button text-2xl px-8 py-3 w-64">НАСТРОЙКИ</button>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="modeSelection" class="hidden text-center p-4">
+        <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ РЕЖИМ</h2>
+        <button id="relaxModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ОТДЫХА</button>
+        <button id="challengeModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ВЫЗОВА</button>
+        <button data-target="mainMenu" class="back-button pixel-button text-xl md:text-2xl px-8 py-4 w-64">НАЗАД</button>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="gameContainer" class="hidden w-full h-full flex flex-col">
+        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl">
+            <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
+            <div id="asmrContainer" class="flex items-center gap-2">
+                <div id="asmrTimerContainer" class="hidden font-bold text-cyan-400">ASMR: <span id="asmrTimer">20</span></div>
+                <div id="asmrLetters"><span id="letterA" class="opacity-30">A</span><span id="letterS" class="opacity-30">S</span><span id="letterM" class="opacity-30">M</span><span id="letterR" class="opacity-30">R</span></div>
+            </div>
+            <div>МОНЕТЫ: <span id="score">0</span></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center">
+         <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
+         <p class="text-xl md:text-2xl mb-4">ВАШ СЧЁТ:</p>
+         <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
+         <button id="restartButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6">НАЧАТЬ ЗАНОВО</button>
+         <button id="menuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
+    </div>
+
+    <!-- Statistics Screen -->
+    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg">
+        <h2 class="text-3xl text-yellow-400 mb-8">СТАТИСТИКА</h2>
+        <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
+            <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Отдыха:</h3>
+            <p>Убито белых призраков: <span id="relaxNormalStat" class="text-gray-300">0</span></p>
+            <p>Убито красных призраков: <span id="relaxRedStat" class="text-red-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Вызова:</h3>
+            <p>Убито белых призраков: <span id="challengeNormalStat" class="text-gray-300">0</span></p>
+            <p>Убито красных призраков: <span id="challengeRedStat" class="text-red-400">0</span></p>
+        </div>
+        <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
+    </div>
+    
+    <!-- Settings/Shop Screen -->
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-lg overflow-y-auto h-screen">
+        <h2 class="text-3xl text-yellow-400 mb-4">НАСТРОЙКИ</h2>
+        <p class="mb-6">Ваши монеты: <span id="shopCoinBalance" class="text-yellow-400">0</span></p>
+        
+        <h3 class="text-xl mt-4 mb-2 text-cyan-400">Цвет расчёски</h3>
+        <div id="combColorShop" class="grid grid-cols-3 gap-4 p-2 bg-gray-800"></div>
+        
+        <h3 class="text-xl mt-6 mb-2 text-cyan-400">Фон</h3>
+        <div id="backgroundShop" class="grid grid-cols-2 gap-4 p-2 bg-gray-800"></div>
+
+        <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
+    </div>
+
+
+<script>
+// --- Get DOM Elements ---
+const mainMenu = document.getElementById('mainMenu');
+const modeSelection = document.getElementById('modeSelection');
+const gameContainer = document.getElementById('gameContainer');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const statsScreen = document.getElementById('statsScreen');
+const settingsScreen = document.getElementById('settingsScreen');
+const playButton = document.getElementById('playButton');
+const statsButton = document.getElementById('statsButton');
+const settingsButton = document.getElementById('settingsButton');
+const relaxModeButton = document.getElementById('relaxModeButton');
+const challengeModeButton = document.getElementById('challengeModeButton');
+const restartButton = document.getElementById('restartButton');
+const menuButton = document.getElementById('menuButton');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+// UI Elements
+const livesEl = document.getElementById('lives');
+const scoreEl = document.getElementById('score');
+const finalScoreEl = document.getElementById('finalScore');
+const letterA_El = document.getElementById('letterA');
+const letterS_El = document.getElementById('letterS');
+const letterM_El = document.getElementById('letterM');
+const letterR_El = document.getElementById('letterR');
+const asmrLettersEl = document.getElementById('asmrLetters');
+const asmrTimerContainerEl = document.getElementById('asmrTimerContainer');
+const asmrTimerEl = document.getElementById('asmrTimer');
+const greetingEl = document.getElementById('greeting');
+const menuComb = document.getElementById('menuComb');
+// Stats Elements
+const totalCoinsStat = document.getElementById('totalCoinsStat');
+const relaxNormalStat = document.getElementById('relaxNormalStat');
+const relaxRedStat = document.getElementById('relaxRedStat');
+const challengeNormalStat = document.getElementById('challengeNormalStat');
+const challengeRedStat = document.getElementById('challengeRedStat');
+// Shop Elements
+const shopCoinBalance = document.getElementById('shopCoinBalance');
+const combColorShop = document.getElementById('combColorShop');
+const backgroundShop = document.getElementById('backgroundShop');
+
+// --- Game State ---
+let gameMode = 'relax';
+let lives, score, collectedLetters, asmrActive, asmrEndTime;
+let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds;
+let gameLoopId;
+let keys = {};
+let isGameOver = false;
+
+// --- Timers & Intervals ---
+let shootInterval = 500; let lastShotTime = 0;
+let enemySpawnRate = 2000; let lastEnemySpawn = 0;
+let coinSpawnRate = 6000; let lastCoinSpawn = 0; // Increased
+let letterSpawnRate = 15000; let lastLetterSpawn = 0;
+let heartSpawnRate = 80000; let lastHeartSpawn = 0;
+let cloudSpawnRate = 5000; let lastCloudSpawn = 0;
+
+// --- Challenge Mode ---
+let challengeTimer = 0; let speedMultiplier = 1.0; let challengeMinute = 0;
+
+// --- Controls ---
+let joystick = { active: false, id: null, baseX: 0, baseY: 0, stickX: 0, stickY: 0, radius: 60, stickRadius: 30 };
+const isTouchDevice = 'ontouchstart' in window;
+
+// --- Persistent Data ---
+let gameData = {};
+const defaultGameData = {
+    stats: { totalCoins: 0, kills: { relax: { normal: 0, red: 0 }, challenge: { normal: 0, red: 0 } } },
+    shop: { unlockedColors: ['#fBBF24'], unlockedBackgrounds: ['default'], selectedColor: '#fBBF24', selectedBackground: 'default' }
+};
+
+const SHOP_ITEMS = {
+    colors: [
+        { id: '#fBBF24', name: 'Жёлтая', cost: 0 }, { id: '#34D399', name: 'Мятная', cost: 10 },
+        { id: '#F87171', name: 'Красная', cost: 10 }, { id: '#A78BFA', name: 'Лиловая', cost: 10 },
+    ],
+    backgrounds: [
+        { id: 'default', name: 'Небо', cost: 0, style: '#4a5568 radial-gradient(circle at 25% 25%, #60a5fa, transparent 30%), radial-gradient(circle at 75% 75%, #93c5fd, transparent 30%)' },
+        { id: 'space', name: 'Космос', cost: 10, style: '#1a202c radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)' },
+    ]
+};
+
+// --- Game Object Classes (condensed for brevity, no change in logic) ---
+class Player {
+    constructor() {
+        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 7;
+        this.color = gameData.shop.selectedColor;
+    }
+    draw() {
+        ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height * 0.4);
+        for (let i = 0; i < 7; i++) { ctx.fillRect(this.x + i * (this.width/7) + 2, this.y + this.height * 0.4, 4, this.height * 0.6); }
+    }
+    update() {
+        let dx = 0, dy = 0;
+        if (joystick.active) {
+            const dxJoy = joystick.stickX - joystick.baseX, dyJoy = joystick.stickY - joystick.baseY;
+            const dist = Math.sqrt(dxJoy*dxJoy + dyJoy*dyJoy);
+            if (dist > 10) { dx = (dxJoy / dist); dy = (dyJoy / dist); }
+        } else {
+            if (keys['ArrowUp'] || keys['w']) dy = -1; if (keys['ArrowDown'] || keys['s']) dy = 1;
+            if (keys['ArrowLeft'] || keys['a']) dx = -1; if (keys['ArrowRight'] || keys['d']) dx = 1;
+        }
+        if (dx !== 0 && dy !== 0) { const length = Math.sqrt(2); dx /= length; dy /= length; }
+        this.x += dx * this.speed; this.y += dy * this.speed;
+        if (this.y < 0) this.y = 0; if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+        if (this.x < 0) this.x = 0; if (this.x > canvas.width / 3 - this.width) this.x = canvas.width / 3 - this.width;
+    }
+}
+class Bullet { constructor(x, y, dy = 0) { this.x = x; this.y = y; this.width = 15; this.height = 5; this.speed = 10; this.color = '#fde047'; this.dy = dy; } draw() { ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height); } update() { this.x += this.speed; this.y += this.dy; } }
+class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.color = '#fca5a5'; } }
+class Enemy { constructor() { this.width = 50; this.height = 50; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 2 + 2; this.shoots = Math.random() > 0.6; this.lastShot = Date.now(); this.shootCooldown = Math.random() * 2000 + 1500; } draw() { ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.8); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.8); ctx.lineTo(this.x, this.y + this.height * 0.8); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(this.x + this.width * 0.3, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.arc(this.x + this.width * 0.7, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed * speedMultiplier; if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) { enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2)); this.lastShot = Date.now(); } } }
+class RedEnemy extends Enemy { constructor() { super(); this.health = 2; this.speed = Math.random() * 1 + 1.5; this.shoots = true; } draw() { ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.75, this.y + this.height*0.8); ctx.lineTo(this.x + this.width * 0.5, this.y + this.height); ctx.lineTo(this.x + this.width * 0.25, this.y + this.height*0.8); ctx.lineTo(this.x, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.moveTo(this.x + this.width * 0.2, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.4, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.6, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.8, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.6, this.y + this.height * 0.5); ctx.stroke(); } }
+class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw() { if (this.type === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2.5, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
+class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
+class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw() { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed; } }
+class ForegroundCloud extends Cloud { constructor() { super(); this.speed = (Math.random() * 1 + 1) * 2; this.opacity = 0.5; } }
+
+// --- Game Data Functions ---
+function loadGameData() {
+    const savedData = localStorage.getItem('legendaryCombData');
+    gameData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultGameData));
+}
+
+function saveGameData() {
+    localStorage.setItem('legendaryCombData', JSON.stringify(gameData));
+}
+
+// --- Game Functions ---
+function init() {
+    const uiHeight = document.getElementById('uiBar').offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - uiHeight;
+    const selectedBg = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
+    canvas.style.background = selectedBg.style;
+    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false;
+    player = new Player(); bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = [];
+    challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
+    updateUI();
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    gameLoop(0);
+}
+
+function spawnEntities(timestamp) {
+    if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
+    if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+    const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
+    if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
+    if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
+    if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
+}
+
+function handleShooting(timestamp) {
+    if (timestamp - lastShotTime > shootInterval) {
+        const bulletY = player.y + player.height / 2 - 2.5;
+        if (asmrActive) { bullets.push(new Bullet(player.x + player.width, bulletY, -3)); bullets.push(new Bullet(player.x + player.width, bulletY, 0)); bullets.push(new Bullet(player.x + player.width, bulletY, 3)); }
+        else { bullets.push(new Bullet(player.x + player.width, bulletY)); }
+        lastShotTime = timestamp;
+    }
+}
+
+function checkCollisions() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            if (isColliding(bullets[i], enemies[j])) {
+                const enemy = enemies[j];
+                if (enemy instanceof RedEnemy) {
+                    enemy.health--;
+                    if (enemy.health <= 0) {
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
+                        collectibles.push(new Collectible('coin', enemy.x, enemy.y));
+                        enemies.splice(j, 1);
+                        gameData.stats.kills[gameMode].red++; saveGameData();
+                    }
+                } else {
+                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                    enemies.splice(j, 1);
+                    gameData.stats.kills[gameMode].normal++; saveGameData();
+                }
+                bullets.splice(i, 1); break;
+            }
+        }
+    }
+    const checkPlayerCollision = (object) => { if (isColliding(player, object)) { lives--; updateUI(); createExplosion(player.x + player.width/2, player.y + player.height/2, '#fBBF24'); if (lives <= 0) gameOver(); return true; } return false; }
+    for (let i = enemies.length - 1; i >= 0; i--) { if (checkPlayerCollision(enemies[i])) { enemies.splice(i, 1); break; } }
+    for (let i = enemyBullets.length - 1; i >= 0; i--) { if (checkPlayerCollision(enemyBullets[i])) { enemyBullets.splice(i, 1); break; } }
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        if(isColliding(player, collectibles[i])) {
+            const item = collectibles[i];
+            if (item.type === 'coin') { score++; gameData.stats.totalCoins++; saveGameData(); }
+            else if (item.type === 'heart') { if (lives < 3) lives++; }
+            else { collectedLetters.add(item.type); if (collectedLetters.size === 4) { asmrActive = true; asmrEndTime = Date.now() + 20000; } }
+            collectibles.splice(i, 1); updateUI();
+        }
+    }
+}
+function isColliding(rect1, rect2) { const w1 = rect1.size || rect1.width, h1 = rect1.height || w1; const w2 = rect2.size || rect2.width, h2 = rect2.height || w2; return rect1.x < rect2.x + w2 && rect1.x + w1 > rect2.x && rect1.y < rect2.y + h2 && rect1.y + h1 > rect2.y; }
+
+function updateUI() {
+    scoreEl.textContent = score;
+    livesEl.innerHTML = ''; for(let i=0; i<lives; i++) livesEl.innerHTML += '💛';
+    if (asmrActive) {
+        asmrTimerContainerEl.classList.remove('hidden'); asmrLettersEl.classList.add('hidden');
+        const timeLeft = Math.ceil((asmrEndTime - Date.now()) / 1000);
+        asmrTimerEl.textContent = timeLeft > 0 ? timeLeft : 0;
+    } else {
+        asmrTimerContainerEl.classList.add('hidden'); asmrLettersEl.classList.remove('hidden');
+        letterA_El.style.opacity = collectedLetters.has('A') ? 1 : 0.3; letterS_El.style.opacity = collectedLetters.has('S') ? 1 : 0.3;
+        letterM_El.style.opacity = collectedLetters.has('M') ? 1 : 0.3; letterR_El.style.opacity = collectedLetters.has('R') ? 1 : 0.3;
+    }
+}
+
+function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
+
+function gameLoop(timestamp) {
+    if (isGameOver) return;
+
+    if (window.innerWidth > window.innerHeight && isTouchDevice) {
+        gameLoopId = requestAnimationFrame(gameLoop);
+        return; 
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
+    if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
+    spawnEntities(timestamp); handleShooting(timestamp);
+    [clouds, particles, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
+    player.update(); foregroundClouds.forEach(c => c.update());
+    [clouds, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { if (Array.isArray(arr)) arr.forEach(item => item.draw()); else arr.draw(); });
+    foregroundClouds.forEach(c => c.draw()); if (isTouchDevice) drawJoystick();
+    bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
+    enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
+    particles = particles.filter(p => p.life > 0); clouds = clouds.filter(c => c.x + c.size * 2 > 0);
+    foregroundClouds = foregroundClouds.filter(c => c.x + c.size * 2 > 0);
+    checkCollisions(); gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
+function gameOver() { isGameOver = true; cancelAnimationFrame(gameLoopId); showScreen('gameOverScreen'); finalScoreEl.textContent = score; }
+
+// --- Screen & UI Management ---
+function showScreen(screenId) {
+    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen].forEach(s => s.classList.add('hidden'));
+    document.getElementById(screenId).classList.remove('hidden');
+
+    if (screenId === 'statsScreen') updateStatsScreen();
+    if (screenId === 'settingsScreen') renderShop();
+    if (screenId === 'mainMenu') {
+        menuComb.style.fill = gameData.shop.selectedColor;
+        try {
+            const user = window.Telegram.WebApp.initDataUnsafe.user;
+            greetingEl.textContent = `Привет, ${user.first_name}!`;
+        } catch (e) {
+            greetingEl.textContent = `Привет, Игрок!`;
+        }
+    }
+}
+
+function updateStatsScreen() {
+    const stats = gameData.stats;
+    totalCoinsStat.textContent = stats.totalCoins;
+    relaxNormalStat.textContent = stats.kills.relax.normal;
+    relaxRedStat.textContent = stats.kills.relax.red;
+    challengeNormalStat.textContent = stats.kills.challenge.normal;
+    challengeRedStat.textContent = stats.kills.challenge.red;
+}
+
+function renderShop() {
+    shopCoinBalance.textContent = gameData.stats.totalCoins;
+    combColorShop.innerHTML = '';
+    SHOP_ITEMS.colors.forEach(item => {
+        const isUnlocked = gameData.shop.unlockedColors.includes(item.id);
+        const isSelected = gameData.shop.selectedColor === item.id;
+        const div = document.createElement('div');
+        div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+        div.innerHTML = `<div class="w-full h-10" style="background-color:${item.id};"></div><p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
+        div.onclick = () => handleShopClick('color', item, isUnlocked);
+        combColorShop.appendChild(div);
+    });
+    backgroundShop.innerHTML = '';
+    SHOP_ITEMS.backgrounds.forEach(item => {
+        const isUnlocked = gameData.shop.unlockedBackgrounds.includes(item.id);
+        const isSelected = gameData.shop.selectedBackground === item.id;
+        const div = document.createElement('div');
+        div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+        div.innerHTML = `<div class="w-full h-10" style="background:${item.style};"></div><p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
+        div.onclick = () => handleShopClick('background', item, isUnlocked);
+        backgroundShop.appendChild(div);
+    });
+}
+
+function handleShopClick(type, item, isUnlocked) {
+    if (isUnlocked) {
+        if (type === 'color') gameData.shop.selectedColor = item.id;
+        if (type === 'background') gameData.shop.selectedBackground = item.id;
+    } else {
+        if (gameData.stats.totalCoins >= item.cost) {
+            gameData.stats.totalCoins -= item.cost;
+            if (type === 'color') { gameData.shop.unlockedColors.push(item.id); gameData.shop.selectedColor = item.id; }
+            if (type === 'background') { gameData.shop.unlockedBackgrounds.push(item.id); gameData.shop.selectedBackground = item.id; }
+        } else {
+            // Можно добавить сообщение о нехватке монет
+            return;
+        }
+    }
+    saveGameData();
+    renderShop();
+}
+
+function checkOrientation() {
+    const orientationWarning = document.getElementById('orientationWarning');
+    if (window.innerWidth > window.innerHeight && isTouchDevice) {
+        orientationWarning.classList.remove('hidden');
+        orientationWarning.classList.add('flex');
+    } else {
+        orientationWarning.classList.add('hidden');
+        orientationWarning.classList.remove('flex');
+    }
+}
+
+// --- Event Handlers ---
+playButton.addEventListener('click', () => showScreen('modeSelection'));
+statsButton.addEventListener('click', () => showScreen('statsScreen'));
+settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
+relaxModeButton.addEventListener('click', () => { gameMode = 'relax'; showScreen('gameContainer'); init(); });
+challengeModeButton.addEventListener('click', () => { gameMode = 'challenge'; showScreen('gameContainer'); init(); });
+restartButton.addEventListener('click', () => showScreen('modeSelection'));
+menuButton.addEventListener('click', () => showScreen('mainMenu'));
+document.querySelectorAll('.back-button').forEach(btn => {
+    btn.addEventListener('click', () => showScreen(btn.dataset.target));
+});
+
+window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
+function handleTouchStart(e) { e.preventDefault(); const touch = e.changedTouches[0]; if (joystick.active || touch.clientX > canvas.width / 3) return; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.clientY - canvas.getBoundingClientRect().top; }
+function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } }
+function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; } }
+if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
+
+window.addEventListener('resize', () => {
+    checkOrientation();
+    if(gameContainer.offsetParent !== null) {
+       init(); 
+    }
+});
+
+// --- Initial Load ---
+window.onload = () => {
+    try { window.Telegram.WebApp.ready(); } catch(e) { console.log('Not in Telegram'); }
+    loadGameData();
+    checkOrientation();
+    showScreen('mainMenu');
+};
+
+</script>
+</body>
+</html>
+
