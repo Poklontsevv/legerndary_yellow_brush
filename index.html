@@ -477,7 +477,13 @@ window.addEventListener('resize', () => {
 
 // --- Initial Load ---
 window.onload = () => {
-    try { window.Telegram.WebApp.ready(); } catch(e) { console.log('Not in Telegram'); }
+    try { 
+        window.Telegram.WebApp.ready(); 
+        // FIX: Отключаем свайп для закрытия окна в Telegram
+        window.Telegram.WebApp.disableVerticalSwipes();
+    } catch(e) { 
+        console.log('Not in Telegram'); 
+    }
     loadGameData();
     checkOrientation();
     showScreen('mainMenu');
