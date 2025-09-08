@@ -50,6 +50,11 @@
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
     
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center text-center p-4">
+        <p class="text-xl">Загрузка...</p>
+    </div>
+
     <!-- Orientation Warning -->
     <div id="orientationWarning" class="hidden absolute inset-0 bg-black bg-opacity-90 z-50 flex-col items-center justify-center text-center p-4">
         <svg class="w-16 h-16 text-white mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -57,7 +62,7 @@
     </div>
 
     <!-- Main Menu -->
-    <div id="mainMenu" class="text-center p-4">
+    <div id="mainMenu" class="hidden text-center p-4">
         <p id="greeting" class="text-xl mb-4">Привет!</p>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6" style="text-shadow: 4px 4px 0px #000;">ЛЕГЕНДАРНАЯ</h1>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ЖЁЛТАЯ РАСЧЁСКА</h1>
@@ -162,6 +167,7 @@
 
 <script>
 // --- Get DOM Elements ---
+const loadingScreen = document.getElementById('loadingScreen');
 const mainMenu = document.getElementById('mainMenu');
 const modeSelection = document.getElementById('modeSelection');
 const menuCombCanvas = document.getElementById('menuCombCanvas');
@@ -249,17 +255,39 @@ const defaultGameData = {
     }
 };
 
+// --- IMAGE LOADING ---
+const gameImages = {};
+const imageUrls = {
+    coin: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/coin.png',
+    blueSky: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/blue_sky.png',
+    cloudBig: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/cloud_big.png',
+    cloudSmall: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/cloud_small.png',
+    whiteGoast: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/white_goast.png',
+    redGoast: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/red_goast.png',
+    classicComb: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/brush.png'
+};
+
+function preloadImages() {
+    const promises = Object.entries(imageUrls).map(([id, src]) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                gameImages[id] = img;
+                resolve(img);
+            };
+            img.onerror = (err) => {
+                console.error(`Failed to load image: ${id} at ${src}`);
+                reject(err);
+            };
+            img.src = src;
+        });
+    });
+    return Promise.all(promises);
+}
+
+
 // --- DRAWING FUNCTIONS & SHOP ITEMS ---
 const DRAW_FUNCTIONS = {
-    drawClassicComb: (ctx, color, width, height) => {
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, width, height * 0.4);
-        const toothWidth = Math.max(1, Math.floor(width / 15));
-        const toothSpacing = Math.max(1, Math.floor(width / 7));
-        for (let i = 0; i < 7; i++) {
-            ctx.fillRect(i * toothSpacing + toothWidth, height * 0.4, toothWidth, height * 0.6);
-        }
-    },
     drawPumpkin: (ctx, color, width, height) => {
         ctx.fillStyle = '#e2802b';
         ctx.beginPath();
@@ -343,7 +371,29 @@ const DRAW_FUNCTIONS = {
 
 const SHOP_ITEMS = {
     combs: [
-        { id: 'classic', name: 'Классика', cost: 0, starCost: 0, draw: DRAW_FUNCTIONS.drawClassicComb },
+        { 
+            id: 'classic', 
+            name: 'Классика', 
+            cost: 0, 
+            starCost: 0, 
+            draw: (ctx, color, width, height) => {
+                const img = gameImages.classicComb;
+                if (img) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    if (color !== '#fBBF24') { // Apply tint if not default color
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.7;
+                        ctx.fillRect(0, 0, width, height);
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.globalAlpha = 1.0;
+                    }
+                } else { // Fallback if image fails
+                    ctx.fillStyle = color;
+                    ctx.fillRect(0, 0, width, height);
+                }
+            }
+        },
         { id: 'pumpkin', name: 'Тыква', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPumpkin },
         { id: 'plane', name: 'Самолётик', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPaperPlane },
         { id: 'choco', name: 'Шоколадка', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawChocolate },
@@ -369,7 +419,15 @@ const SHOP_ITEMS = {
         { id: '#ffffff', name: 'Белая', cost: 0, starCost: 1 }, { id: '#000000', name: 'Чёрная', cost: 0, starCost: 1 },
     ],
     backgrounds: [
-        { id: 'default', name: 'Небо', cost: 0, starCost: 0, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#ADD8E6'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'default', name: 'Небо', cost: 0, starCost: 0, init: ()=>{}, draw: (c,ct) => { 
+            const img = gameImages.blueSky;
+            if (img) {
+                ct.drawImage(img, 0, 0, c.width, c.height);
+            } else {
+                ct.fillStyle = '#ADD8E6'; 
+                ct.fillRect(0,0,c.width,c.height);
+            }
+        }},
         { id: 'space', name: 'Космос', cost: 0, starCost: 8, 
             init: (c, ct) => { 
                 ct.stars = []; 
@@ -421,11 +479,18 @@ const SHOP_ITEMS = {
 // --- Game Object Classes ---
 class Player {
     constructor() {
-        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 8;
+        this.speed = 8;
         this.lastTrailTime = 0;
+        
+        const img = gameImages.classicComb;
+        const aspectRatio = img.height / img.width;
+        this.width = 60; // Base width
+        this.height = this.width * aspectRatio;
+
+        this.x = this.width / 2;
+        this.y = canvas.height / 2;
     }
     draw(ctx) {
-        // Find the correct draw function and color on every frame
         const drawFn = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb).draw;
         const color = gameData.shop.selectedColor;
 
@@ -497,12 +562,85 @@ class TrailParticle {
         this.life -= 4;
     }
 }
-class Enemy { constructor() { this.width = 50; this.height = 50; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 2 + 2; this.shoots = Math.random() > 0.6; this.lastShot = Date.now(); this.shootCooldown = Math.random() * 2000 + 1500; } draw(ctx) { ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.8); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.8); ctx.lineTo(this.x, this.y + this.height * 0.8); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(this.x + this.width * 0.3, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.arc(this.x + this.width * 0.7, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed * speedMultiplier; if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) { enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2)); this.lastShot = Date.now(); } } }
-class RedEnemy extends Enemy { constructor() { super(); this.health = 2; this.speed = Math.random() * 1 + 1.5; this.shoots = true; } draw(ctx) { ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.75, this.y + this.height*0.8); ctx.lineTo(this.x + this.width * 0.5, this.y + this.height); ctx.lineTo(this.x + this.width * 0.25, this.y + this.height*0.8); ctx.lineTo(this.x, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.moveTo(this.x + this.width * 0.2, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.4, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.6, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.8, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.6, this.y + this.height * 0.5); ctx.stroke(); } }
-class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2.5, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
+class Enemy {
+    constructor() {
+        this.width = 50;
+        const img = gameImages.whiteGoast;
+        this.height = this.width * (img.height / img.width);
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height - this.height);
+        this.speed = Math.random() * 2 + 2;
+        this.shoots = Math.random() > 0.6;
+        this.lastShot = Date.now();
+        this.shootCooldown = Math.random() * 2000 + 1500;
+    }
+    draw(ctx) {
+        ctx.drawImage(gameImages.whiteGoast, this.x, this.y, this.width, this.height);
+    }
+    update() {
+        this.x -= this.speed * speedMultiplier;
+        if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) {
+            enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2));
+            this.lastShot = Date.now();
+        }
+    }
+}
+class RedEnemy extends Enemy {
+    constructor() {
+        super();
+        this.health = 2;
+        const img = gameImages.redGoast;
+        this.height = this.width * (img.height / img.width);
+        this.speed = Math.random() * 1 + 1.5;
+        this.shoots = true;
+    }
+    draw(ctx) {
+        ctx.drawImage(gameImages.redGoast, this.x, this.y, this.width, this.height);
+    }
+}
+class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { ctx.drawImage(gameImages.coin, this.x, this.y, this.size, this.size); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
 class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw(ctx) { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
-class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw(ctx) { if (gameData.shop.selectedBackground === 'sweets') { DRAW_FUNCTIONS.drawDonut(ctx, this.x, this.y, this.size); } else { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } } update() { this.x -= this.speed; } }
-class ForegroundCloud extends Cloud { constructor() { super(); this.speed = (Math.random() * 1 + 1) * 2; this.opacity = 0.5; } }
+class Cloud {
+    constructor() {
+        this.x = canvas.width + Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.isBig = Math.random() > 0.5;
+        this.image = this.isBig ? gameImages.cloudBig : gameImages.cloudSmall;
+        this.width = this.isBig ? (Math.random() * 100 + 150) : (Math.random() * 50 + 80);
+        this.speed = Math.random() * 1 + 0.5;
+        this.opacity = Math.random() * 0.3 + 0.4;
+    }
+    draw(ctx) {
+        if (gameData.shop.selectedBackground === 'sweets') {
+            DRAW_FUNCTIONS.drawDonut(ctx, this.x, this.y, this.width);
+        } else if (gameData.shop.selectedBackground === 'default' || gameData.shop.selectedBackground === 'mountains') {
+             if (this.image) {
+                ctx.globalAlpha = this.opacity;
+                const aspectRatio = this.image.height / this.image.width;
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.width * aspectRatio);
+                ctx.globalAlpha = 1.0;
+            }
+        } else {
+             ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`;
+             const size = this.width;
+             ctx.beginPath();
+             ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+             ctx.arc(this.x + size * 0.8, this.y, size * 0.8, 0, Math.PI * 2);
+             ctx.arc(this.x + size * 0.4, this.y - size * 0.3, size * 0.7, 0, Math.PI * 2);
+             ctx.fill();
+        }
+    }
+    update() {
+        this.x -= this.speed;
+    }
+}
+class ForegroundCloud extends Cloud {
+    constructor() {
+        super();
+        this.speed = (Math.random() * 1 + 1) * 2;
+        this.opacity = 0.9;
+    }
+}
 class Bat { constructor() { this.width = 40; this.height = 20; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 4 + 4; this.frame = 0; this.lastFrameTime = 0; } draw(ctx) { ctx.fillStyle = 'black'; ctx.beginPath(); const wingY = this.frame === 0 ? this.y : this.y + 10; ctx.moveTo(this.x, wingY); ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2); ctx.lineTo(this.x + this.width, wingY); ctx.closePath(); ctx.fill(); } update() { this.x -= this.speed; if (Date.now() - this.lastFrameTime > 100) { this.frame = 1 - this.frame; this.lastFrameTime = Date.now(); } } }
 class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.drawFn = (ctx) => { ctx.fillStyle = '#fca5a5'; ctx.fillRect(0, 0, this.width/2, this.height/2); }; } }
 
@@ -647,7 +785,7 @@ function updateUI() {
     }
 }
 function showScreen(screenId) {
-    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen].forEach(s => s.classList.add('hidden'));
+    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen, loadingScreen].forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
 
     if (screenId === 'settingsScreen') {
@@ -830,7 +968,15 @@ window.addEventListener('resize', () => {
 });
 
 // --- Initial Load ---
-window.onload = () => {
+window.onload = async () => {
+    try {
+        await preloadImages();
+    } catch (error) {
+        console.error("Не удалось загрузить игровые ресурсы:", error);
+        document.body.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4">Ошибка загрузки ресурсов.<br>Пожалуйста, обновите страницу.</div>`;
+        return;
+    }
+
     try { 
         window.Telegram.WebApp.ready(); 
         window.Telegram.WebApp.disableVerticalSwipes();
@@ -839,6 +985,7 @@ window.onload = () => {
         console.log('Not in Telegram or user ID not available.');
         userId = 'default_player';
     }
+    
     loadGameData();
     checkOrientation();
     showScreen('mainMenu');
