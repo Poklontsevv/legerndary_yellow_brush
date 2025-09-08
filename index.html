@@ -42,9 +42,10 @@
         .pixel-button:active { box-shadow: 2px 2px 0 #1e293b; transform: translate(4px, 4px); }
         .pixel-button:disabled { background-color: #9ca3af; box-shadow: 6px 6px 0 #4b5563; color: #4b5563; }
         
-        .shop-item { border: 4px solid #4b5563; cursor: pointer; }
+        .shop-item { border: 4px solid #4b5563; cursor: pointer; background-color: #334155; }
         .shop-item.selected { border-color: #fBBF24; box-shadow: 0 0 10px #fBBF24; }
         .shop-item.locked { filter: grayscale(1) brightness(0.5); }
+        .shop-item canvas { height: 40px; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
@@ -60,10 +61,7 @@
         <p id="greeting" class="text-xl mb-4">Привет!</p>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6" style="text-shadow: 4px 4px 0px #000;">ЛЕГЕНДАРНАЯ</h1>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ЖЁЛТАЯ РАСЧЁСКА</h1>
-        <svg id="menuComb" class="w-48 h-48 mx-auto mb-8 comb-float" viewBox="0 0 100 100" fill="#fBBF24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M90,10 H10 C4.477,10,0,14.477,0,20 V40 H100 V20 C100,14.477,95.523,10,90,10 Z" />
-            <rect x="5" y="40" width="8" height="50" rx="3" /><rect x="18" y="40" width="8" height="50" rx="3" /><rect x="31" y="40" width="8" height="50" rx="3" /><rect x="44" y="40" width="8" height="50" rx="3" /><rect x="57" y="40" width="8" height="50" rx="3" /><rect x="70" y="40" width="8" height="50" rx="3" /><rect x="83" y="40" width="8" height="50" rx="3" />
-        </svg>
+        <canvas id="menuCombCanvas" class="w-48 h-48 mx-auto mb-8 comb-float"></canvas>
         <div class="flex flex-col items-center gap-4">
             <button id="playButton" class="pixel-button text-2xl px-8 py-3 w-64">ИГРАТЬ</button>
             <button id="statsButton" class="pixel-button text-2xl px-8 py-3 w-64">СТАТИСТИКА</button>
@@ -103,7 +101,7 @@
 
     <!-- Statistics Screen -->
     <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg">
-        <h2 class="text-3xl text-yellow-400 mb-8">СТАТИСТИКА</h2>
+        <h2 class="text-3xl text-yellow-400 mb-8">ВАША СТАТИСТИКА</h2>
         <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
             <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
             <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Отдыха:</h3>
@@ -117,17 +115,28 @@
     </div>
     
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-lg overflow-y-auto h-screen">
-        <h2 class="text-3xl text-yellow-400 mb-4">НАСТРОЙКИ</h2>
-        <p class="mb-6">Ваши монеты: <span id="shopCoinBalance" class="text-yellow-400">0</span></p>
-        
-        <h3 class="text-xl mt-4 mb-2 text-cyan-400">Цвет расчёски</h3>
-        <div id="combColorShop" class="grid grid-cols-3 gap-4 p-2 bg-gray-800"></div>
-        
-        <h3 class="text-xl mt-6 mb-2 text-cyan-400">Фон</h3>
-        <div id="backgroundShop" class="grid grid-cols-2 gap-4 p-2 bg-gray-800"></div>
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl">
+        <div class="h-full overflow-y-auto">
+            <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
+            <p class="mb-6">Ваши монеты: <span id="shopCoinBalance" class="text-yellow-400">0</span></p>
+            
+            <h3 class="text-xl mt-4 mb-2 text-cyan-400">Вид расчёски</h3>
+            <div id="combShop" class="grid grid-cols-3 sm:grid-cols-5 gap-4 p-2 bg-gray-800"></div>
 
-        <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
+            <h3 class="text-xl mt-6 mb-2 text-cyan-400">Вид пуль</h3>
+            <div id="bulletShop" class="grid grid-cols-3 sm:grid-cols-5 gap-4 p-2 bg-gray-800"></div>
+
+            <h3 class="text-xl mt-6 mb-2 text-cyan-400">Шлейф</h3>
+            <div id="trailShop" class="grid grid-cols-3 sm:grid-cols-4 gap-4 p-2 bg-gray-800"></div>
+
+            <h3 class="text-xl mt-6 mb-2 text-cyan-400">Цвет (для классики)</h3>
+            <div id="combColorShop" class="grid grid-cols-4 sm:grid-cols-6 gap-4 p-2 bg-gray-800"></div>
+            
+            <h3 class="text-xl mt-6 mb-2 text-cyan-400">Фон</h3>
+            <div id="backgroundShop" class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-2 bg-gray-800"></div>
+
+            <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
+        </div>
     </div>
 
 
@@ -135,6 +144,10 @@
 // --- Get DOM Elements ---
 const mainMenu = document.getElementById('mainMenu');
 const modeSelection = document.getElementById('modeSelection');
+const menuCombCanvas = document.getElementById('menuCombCanvas');
+const combShop = document.getElementById('combShop');
+const bulletShop = document.getElementById('bulletShop');
+const trailShop = document.getElementById('trailShop');
 const gameContainer = document.getElementById('gameContainer');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const statsScreen = document.getElementById('statsScreen');
@@ -160,7 +173,6 @@ const asmrLettersEl = document.getElementById('asmrLetters');
 const asmrTimerContainerEl = document.getElementById('asmrTimerContainer');
 const asmrTimerEl = document.getElementById('asmrTimer');
 const greetingEl = document.getElementById('greeting');
-const menuComb = document.getElementById('menuComb');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
@@ -172,56 +184,173 @@ const shopCoinBalance = document.getElementById('shopCoinBalance');
 const combColorShop = document.getElementById('combColorShop');
 const backgroundShop = document.getElementById('backgroundShop');
 
-// --- Game State ---
+// --- Game State & Data ---
+let userId = 'default_player';
 let gameMode = 'relax';
 let lives, score, collectedLetters, asmrActive, asmrEndTime;
-let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds;
+let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles;
 let gameLoopId;
 let keys = {};
 let isGameOver = false;
 
-// --- Timers & Intervals ---
+// Timers & Intervals
 let shootInterval = 500; let lastShotTime = 0;
 let enemySpawnRate = 2000; let lastEnemySpawn = 0;
-let coinSpawnRate = 6000; let lastCoinSpawn = 0; // Increased
+let coinSpawnRate = 6000; let lastCoinSpawn = 0; 
 let letterSpawnRate = 15000; let lastLetterSpawn = 0;
 let heartSpawnRate = 80000; let lastHeartSpawn = 0;
 let cloudSpawnRate = 5000; let lastCloudSpawn = 0;
 
-// --- Challenge Mode ---
+// Challenge Mode
 let challengeTimer = 0; let speedMultiplier = 1.0; let challengeMinute = 0;
 
-// --- Controls ---
+// Controls
 let joystick = { active: false, id: null, baseX: 0, baseY: 0, stickX: 0, stickY: 0, radius: 60, stickRadius: 30 };
 const isTouchDevice = 'ontouchstart' in window;
 
-// --- Persistent Data ---
+// Persistent Data
 let gameData = {};
 const defaultGameData = {
     stats: { totalCoins: 0, kills: { relax: { normal: 0, red: 0 }, challenge: { normal: 0, red: 0 } } },
-    shop: { unlockedColors: ['#fBBF24'], unlockedBackgrounds: ['default'], selectedColor: '#fBBF24', selectedBackground: 'default' }
+    shop: { 
+        unlockedColors: ['#fBBF24'], selectedColor: '#fBBF24',
+        unlockedCombs: ['classic'], selectedComb: 'classic',
+        unlockedBullets: ['classic'], selectedBullet: 'classic',
+        unlockedTrails: ['none'], selectedTrail: 'none',
+        unlockedBackgrounds: ['default'], selectedBackground: 'default' 
+    }
+};
+
+// --- DRAWING FUNCTIONS & SHOP ITEMS ---
+const DRAW_FUNCTIONS = {
+    drawClassicComb: (ctx, color, width, height) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, width, height * 0.4);
+        const toothWidth = Math.max(1, Math.floor(width / 15));
+        const toothSpacing = Math.max(1, Math.floor(width / 7));
+        for (let i = 0; i < 7; i++) {
+            ctx.fillRect(i * toothSpacing + toothWidth, height * 0.4, toothWidth, height * 0.6);
+        }
+    },
+    drawPumpkin: (ctx, color, width, height) => {
+        ctx.fillStyle = '#e2802b';
+        ctx.beginPath();
+        ctx.arc(width/2, height/2, width/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(width/2 - 5, height/2 - width/2 - 5, 10, 10);
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.moveTo(width*0.2, height*0.4); ctx.lineTo(width*0.4, height*0.3); ctx.lineTo(width*0.3, height*0.5); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(width*0.8, height*0.4); ctx.lineTo(width*0.6, height*0.3); ctx.lineTo(width*0.7, height*0.5); ctx.fill();
+        ctx.fillRect(width*0.3, height*0.7, width*0.4, 5);
+    },
+    drawPaperPlane: (ctx, color, width, height) => {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(width * 0.1, height * 0.1);
+        ctx.lineTo(width * 0.9, height * 0.5);
+        ctx.lineTo(width * 0.1, height * 0.9);
+        ctx.closePath();
+        ctx.fill();
+    },
+    drawChocolate: (ctx, color, width, height) => {
+        ctx.fillStyle = '#5c2d08';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#8b4513';
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+                ctx.fillRect(i * (width/3) + 2, j * (height/2) + 2, width/3 - 4, height/2 - 4);
+            }
+        }
+    },
+    drawGun: (ctx, color, width, height) => {
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(0, height * 0.2, width * 0.8, height * 0.4);
+        ctx.fillRect(width * 0.2, height * 0.6, width * 0.2, height * 0.4);
+    },
+    drawClassicBullet: (ctx) => {
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(0, 0, 15, 5);
+    },
+    drawCandyBullet: (ctx) => {
+        ctx.fillStyle = Math.random() > 0.5 ? '#ef4444' : '#34d399';
+        ctx.beginPath();
+        ctx.moveTo(0, 7.5); ctx.lineTo(7.5, 0); ctx.lineTo(15, 7.5); ctx.lineTo(7.5, 15); ctx.closePath();
+        ctx.fill();
+    },
+    drawPlaneBullet: (ctx) => {
+        DRAW_FUNCTIONS.drawPaperPlane(ctx, null, 15, 15);
+    },
+    drawChocoBullet: (ctx) => {
+        ctx.fillStyle = '#5c2d08';
+        ctx.fillRect(0, 0, 10, 10);
+    },
+    drawRealBullet: (ctx) => {
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(10, 7.5, 5, -Math.PI/2, Math.PI/2);
+        ctx.fillRect(0, 2.5, 10, 10);
+        ctx.fill();
+    },
 };
 
 const SHOP_ITEMS = {
+    combs: [
+        { id: 'classic', name: 'Классика', cost: 0, draw: DRAW_FUNCTIONS.drawClassicComb },
+        { id: 'pumpkin', name: 'Тыква', cost: 25, draw: DRAW_FUNCTIONS.drawPumpkin },
+        { id: 'plane', name: 'Самолётик', cost: 25, draw: DRAW_FUNCTIONS.drawPaperPlane },
+        { id: 'choco', name: 'Шоколадка', cost: 25, draw: DRAW_FUNCTIONS.drawChocolate },
+        { id: 'gun', name: 'Пистолет', cost: 50, draw: DRAW_FUNCTIONS.drawGun },
+    ],
+    bullets: [
+        { id: 'classic', name: 'Расчёски', cost: 0, draw: DRAW_FUNCTIONS.drawClassicBullet },
+        { id: 'candy', name: 'Конфеты', cost: 20, draw: DRAW_FUNCTIONS.drawCandyBullet },
+        { id: 'plane', name: 'Самолётики', cost: 20, draw: DRAW_FUNCTIONS.drawPlaneBullet },
+        { id: 'choco', name: 'Шоко-пули', cost: 20, draw: DRAW_FUNCTIONS.drawChocoBullet },
+        { id: 'real', name: 'Пули', cost: 40, draw: DRAW_FUNCTIONS.drawRealBullet },
+    ],
+    trails: [
+        { id: 'none', name: 'Нет', cost: 0 },
+        { id: 'sparks', name: 'Искры', cost: 15, props: { color: '#facc15' } },
+        { id: 'smoke', name: 'Дым', cost: 15, props: { color: '#a1a1aa' } },
+        { id: 'rainbow', name: 'Радуга', cost: 30, props: { color: `hsl(${Math.random() * 360}, 100%, 70%)` } }
+    ],
     colors: [
         { id: '#fBBF24', name: 'Жёлтая', cost: 0 }, { id: '#34D399', name: 'Мятная', cost: 10 },
         { id: '#F87171', name: 'Красная', cost: 10 }, { id: '#A78BFA', name: 'Лиловая', cost: 10 },
+        { id: '#60A5FA', name: 'Голубая', cost: 15 }, { id: '#F472B6', name: 'Розовая', cost: 15 },
+        { id: '#ffffff', name: 'Белая', cost: 20 }, { id: '#000000', name: 'Чёрная', cost: 20 },
     ],
     backgrounds: [
-        { id: 'default', name: 'Небо', cost: 0, style: '#4a5568 radial-gradient(circle at 25% 25%, #60a5fa, transparent 30%), radial-gradient(circle at 75% 75%, #93c5fd, transparent 30%)' },
-        { id: 'space', name: 'Космос', cost: 10, style: '#1a202c radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)' },
+        { id: 'default', name: 'Небо', cost: 0, init: (c,ct) => {}, draw: (c,ct) => { ct.fillStyle = '#87CEEB'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'space', name: 'Космос', cost: 10, 
+            init: (c, ct) => { 
+                ct.stars = []; 
+                for(let i=0; i<100; i++) ct.stars.push({x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*1.5});
+            }, 
+            draw: (c,ct) => { 
+                ct.fillStyle = '#000010'; ct.fillRect(0,0,c.width,c.height); 
+                ct.fillStyle = '#FFF'; ct.stars.forEach(s => { s.x -= 0.1; if(s.x < 0) s.x = c.width; ct.beginPath(); ct.arc(s.x, s.y, s.r, 0, Math.PI*2); ct.fill(); }); 
+            }
+        },
+        { id: 'halloween', name: 'Хэллоуин', cost: 20, draw: (c,ct) => { ct.fillStyle = '#4c1d95'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'mountains', name: 'Горы', cost: 20, draw: (c,ct) => { ct.fillStyle = '#a7f3d0'; ct.fillRect(0,0,c.width,c.height); ct.fillStyle = '#4b5563'; ct.beginPath(); ct.moveTo(0,c.height); ct.lineTo(c.width*0.3, c.height*0.6); ct.lineTo(c.width*0.6, c.height*0.8); ct.lineTo(c.width, c.height*0.7); ct.lineTo(c.width, c.height); ct.closePath(); ct.fill(); }},
+        { id: 'sweets', name: 'Сладости', cost: 20, draw: (c,ct) => { ct.fillStyle = '#fef3c7'; ct.fillRect(0,0,c.width,c.height); }}
     ]
 };
 
-// --- Game Object Classes (condensed for brevity, no change in logic) ---
+// --- Game Object Classes ---
 class Player {
     constructor() {
-        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 8; // Increased speed
+        this.width = 60; this.height = 60; this.x = this.width / 2; this.y = canvas.height / 2; this.speed = 8;
         this.color = gameData.shop.selectedColor;
+        this.drawFn = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb).draw;
+        this.lastTrailTime = 0;
     }
-    draw() {
-        ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height * 0.4);
-        for (let i = 0; i < 7; i++) { ctx.fillRect(this.x + i * (this.width/7) + 2, this.y + this.height * 0.4, 4, this.height * 0.6); }
+    draw(ctx, color) {
+        this.drawFn(ctx, this.color, this.width, this.height);
     }
     update() {
         let dx = 0, dy = 0;
@@ -234,45 +363,100 @@ class Player {
             if (keys['ArrowLeft'] || keys['a']) dx = -1; if (keys['ArrowRight'] || keys['d']) dx = 1;
         }
         if (dx !== 0 && dy !== 0) { const length = Math.sqrt(2); dx /= length; dy /= length; }
+        
+        const prevX = this.x; const prevY = this.y;
         this.x += dx * this.speed; this.y += dy * this.speed;
+        
         if (this.y < 0) this.y = 0; if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
         if (this.x < 0) this.x = 0; if (this.x > canvas.width / 3 - this.width) this.x = canvas.width / 3 - this.width;
+
+        if ((this.x !== prevX || this.y !== prevY) && Date.now() - this.lastTrailTime > 50) {
+            const trail = SHOP_ITEMS.trails.find(t => t.id === gameData.shop.selectedTrail);
+            if (trail && trail.id !== 'none') {
+                let trailColor = trail.props.color;
+                if (trail.id === 'rainbow') trailColor = `hsl(${Date.now()/10 % 360}, 100%, 70%)`;
+                trailParticles.push(new TrailParticle(this.x + this.width/2, this.y + this.height/2, {color: trailColor}));
+                this.lastTrailTime = Date.now();
+            }
+        }
     }
 }
-class Bullet { constructor(x, y, dy = 0) { this.x = x; this.y = y; this.width = 15; this.height = 5; this.speed = 10; this.color = '#fde047'; this.dy = dy; } draw() { ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height); } update() { this.x += this.speed; this.y += this.dy; } }
-class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.color = '#fca5a5'; } }
-class Enemy { constructor() { this.width = 50; this.height = 50; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 2 + 2; this.shoots = Math.random() > 0.6; this.lastShot = Date.now(); this.shootCooldown = Math.random() * 2000 + 1500; } draw() { ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.8); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.8); ctx.lineTo(this.x, this.y + this.height * 0.8); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(this.x + this.width * 0.3, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.arc(this.x + this.width * 0.7, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed * speedMultiplier; if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) { enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2)); this.lastShot = Date.now(); } } }
-class RedEnemy extends Enemy { constructor() { super(); this.health = 2; this.speed = Math.random() * 1 + 1.5; this.shoots = true; } draw() { ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.75, this.y + this.height*0.8); ctx.lineTo(this.x + this.width * 0.5, this.y + this.height); ctx.lineTo(this.x + this.width * 0.25, this.y + this.height*0.8); ctx.lineTo(this.x, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.moveTo(this.x + this.width * 0.2, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.4, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.6, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.8, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.6, this.y + this.height * 0.5); ctx.stroke(); } }
-class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw() { if (this.type === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2.5, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
-class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw() { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
-class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw() { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed; } }
+class Bullet {
+    constructor(x, y, dy = 0) {
+        this.x = x; this.y = y; this.width = 15; this.height = 15; this.speed = 10; this.dy = dy;
+        const bulletDef = SHOP_ITEMS.bullets.find(b => b.id === gameData.shop.selectedBullet);
+        this.drawFn = bulletDef.draw;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.drawFn(ctx);
+        ctx.restore();
+    }
+    update() { this.x += this.speed; this.y += this.dy; }
+}
+class TrailParticle {
+    constructor(x, y, props) {
+        this.x = x; this.y = y; this.size = Math.random() * 5 + 8;
+        this.speedX = Math.random() * 0.5 - 0.25; this.speedY = Math.random() * 0.5 - 0.25;
+        this.color = props.color;
+        this.life = 100; this.maxLife = 100;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life / this.maxLife;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * (this.life / this.maxLife), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    update() {
+        this.x += this.speedX; this.y += this.speedY;
+        this.life -= 4;
+    }
+}
+class Enemy { constructor() { this.width = 50; this.height = 50; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 2 + 2; this.shoots = Math.random() > 0.6; this.lastShot = Date.now(); this.shootCooldown = Math.random() * 2000 + 1500; } draw(ctx) { ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.8); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.8); ctx.lineTo(this.x, this.y + this.height * 0.8); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(this.x + this.width * 0.3, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.arc(this.x + this.width * 0.7, this.y + this.height * 0.4, 4, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed * speedMultiplier; if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) { enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2)); this.lastShot = Date.now(); } } }
+class RedEnemy extends Enemy { constructor() { super(); this.health = 2; this.speed = Math.random() * 1 + 1.5; this.shoots = true; } draw(ctx) { ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; ctx.beginPath(); ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width / 2, Math.PI, 0); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.lineTo(this.x + this.width * 0.75, this.y + this.height*0.8); ctx.lineTo(this.x + this.width * 0.5, this.y + this.height); ctx.lineTo(this.x + this.width * 0.25, this.y + this.height*0.8); ctx.lineTo(this.x, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = 'black'; ctx.beginPath(); ctx.moveTo(this.x + this.width * 0.2, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.4, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.4, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.6, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height * 0.5); ctx.moveTo(this.x + this.width * 0.8, this.y + this.height * 0.3); ctx.lineTo(this.x + this.width * 0.6, this.y + this.height * 0.5); ctx.stroke(); } }
+class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2.5, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
+class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw(ctx) { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
+class Cloud { constructor() { this.x = canvas.width + Math.random() * canvas.width; this.y = Math.random() * canvas.height; this.size = Math.random() * 80 + 60; this.speed = Math.random() * 1 + 0.5; this.opacity = Math.random() * 0.3 + 0.2; } draw(ctx) { ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.8, this.y, this.size * 0.8, 0, Math.PI * 2); ctx.arc(this.x + this.size * 0.4, this.y - this.size * 0.3, this.size * 0.7, 0, Math.PI * 2); ctx.fill(); } update() { this.x -= this.speed; } }
 class ForegroundCloud extends Cloud { constructor() { super(); this.speed = (Math.random() * 1 + 1) * 2; this.opacity = 0.5; } }
+class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.drawFn = (ctx) => { ctx.fillStyle = '#fca5a5'; ctx.fillRect(0, 0, this.width/2, this.height/2); }; } }
 
 // --- Game Data Functions ---
 function loadGameData() {
-    const savedData = localStorage.getItem('legendaryCombData');
-    gameData = savedData ? JSON.parse(savedData) : JSON.parse(JSON.stringify(defaultGameData));
+    const savedData = localStorage.getItem('legendaryCombData_' + userId);
+    if (savedData) {
+        gameData = JSON.parse(savedData);
+        if (!gameData.shop.unlockedCombs) {
+            gameData.shop = {...defaultGameData.shop, ...gameData.shop};
+        }
+    } else {
+        gameData = JSON.parse(JSON.stringify(defaultGameData));
+    }
 }
-
 function saveGameData() {
-    localStorage.setItem('legendaryCombData', JSON.stringify(gameData));
+    localStorage.setItem('legendaryCombData_' + userId, JSON.stringify(gameData));
 }
 
 // --- Game Functions ---
+let backgroundDrawer;
 function init() {
     const uiHeight = document.getElementById('uiBar').offsetHeight;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - uiHeight;
-    const selectedBg = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
-    canvas.style.background = selectedBg.style;
+    
+    backgroundDrawer = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
+    if (backgroundDrawer.init) backgroundDrawer.init(canvas, ctx);
+
     lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false;
-    player = new Player(); bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = [];
+    player = new Player(); 
+    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = [];
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
     updateUI();
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     gameLoop(0);
 }
-
 function spawnEntities(timestamp) {
     if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
     if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
@@ -281,7 +465,6 @@ function spawnEntities(timestamp) {
     if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
     if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
 }
-
 function handleShooting(timestamp) {
     if (timestamp - lastShotTime > shootInterval) {
         const bulletY = player.y + player.height / 2 - 2.5;
@@ -290,7 +473,7 @@ function handleShooting(timestamp) {
         lastShotTime = timestamp;
     }
 }
-
+function isColliding(rect1, rect2) { const w1 = rect1.size || rect1.width, h1 = rect1.height || w1; const w2 = rect2.size || rect2.width, h2 = rect2.height || w2; return rect1.x < rect2.x + w2 && rect1.x + w1 > rect2.x && rect1.y < rect2.y + h2 && rect1.y + h1 > rect2.y; }
 function checkCollisions() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         for (let j = enemies.length - 1; j >= 0; j--) {
@@ -326,8 +509,45 @@ function checkCollisions() {
         }
     }
 }
-function isColliding(rect1, rect2) { const w1 = rect1.size || rect1.width, h1 = rect1.height || w1; const w2 = rect2.size || rect2.width, h2 = rect2.height || w2; return rect1.x < rect2.x + w2 && rect1.x + w1 > rect2.x && rect1.y < rect2.y + h2 && rect1.y + h1 > rect2.y; }
+function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
+function gameOver() { isGameOver = true; cancelAnimationFrame(gameLoopId); showScreen('gameOverScreen'); finalScoreEl.textContent = score; }
+function gameLoop(timestamp) {
+    if (isGameOver) return;
+    if (window.innerWidth > window.innerHeight && isTouchDevice) {
+        gameLoopId = requestAnimationFrame(gameLoop);
+        return; 
+    }
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    backgroundDrawer.draw(canvas, ctx);
+
+    if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
+    if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
+    spawnEntities(timestamp); handleShooting(timestamp);
+    
+    [clouds, particles, trailParticles, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
+    player.update(); foregroundClouds.forEach(c => c.update());
+    
+    // Draw order
+    [clouds, trailParticles, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { 
+        if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
+        else arr.draw(ctx, gameData.shop.selectedColor); 
+    });
+    foregroundClouds.forEach(c => c.draw()); 
+    if (isTouchDevice) drawJoystick();
+    
+    // Filtering
+    bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
+    enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
+    particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
+    clouds = clouds.filter(c => c.x + c.size * 2 > 0);
+    foregroundClouds = foregroundClouds.filter(c => c.x + c.size * 2 > 0);
+    
+    checkCollisions(); 
+    gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+// --- UI Management ---
 function updateUI() {
     scoreEl.textContent = score;
     livesEl.innerHTML = ''; for(let i=0; i<lives; i++) livesEl.innerHTML += '💛';
@@ -341,44 +561,19 @@ function updateUI() {
         letterM_El.style.opacity = collectedLetters.has('M') ? 1 : 0.3; letterR_El.style.opacity = collectedLetters.has('R') ? 1 : 0.3;
     }
 }
-
-function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
-
-function gameLoop(timestamp) {
-    if (isGameOver) return;
-
-    if (window.innerWidth > window.innerHeight && isTouchDevice) {
-        gameLoopId = requestAnimationFrame(gameLoop);
-        return; 
-    }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
-    if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
-    spawnEntities(timestamp); handleShooting(timestamp);
-    [clouds, particles, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
-    player.update(); foregroundClouds.forEach(c => c.update());
-    [clouds, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { if (Array.isArray(arr)) arr.forEach(item => item.draw()); else arr.draw(); });
-    foregroundClouds.forEach(c => c.draw()); if (isTouchDevice) drawJoystick();
-    bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
-    enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
-    particles = particles.filter(p => p.life > 0); clouds = clouds.filter(c => c.x + c.size * 2 > 0);
-    foregroundClouds = foregroundClouds.filter(c => c.x + c.size * 2 > 0);
-    checkCollisions(); gameLoopId = requestAnimationFrame(gameLoop);
-}
-
-function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
-function gameOver() { isGameOver = true; cancelAnimationFrame(gameLoopId); showScreen('gameOverScreen'); finalScoreEl.textContent = score; }
-
-// --- Screen & UI Management ---
 function showScreen(screenId) {
     [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen].forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
 
     if (screenId === 'statsScreen') updateStatsScreen();
-    if (screenId === 'settingsScreen') renderShop();
+    if (screenId === 'settingsScreen') renderAllShops();
     if (screenId === 'mainMenu') {
-        menuComb.style.fill = gameData.shop.selectedColor;
+        const menuCtx = menuCombCanvas.getContext('2d');
+        menuCombCanvas.width = 192; menuCombCanvas.height = 192;
+        const selectedComb = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
+        const playerInstance = { color: gameData.shop.selectedColor, width: 192, height: 192 };
+        selectedComb.draw.call(playerInstance, menuCtx, gameData.shop.selectedColor, 192, 192);
+        
         try {
             const user = window.Telegram.WebApp.initDataUnsafe.user;
             greetingEl.textContent = `Привет, ${user.first_name}!`;
@@ -387,7 +582,6 @@ function showScreen(screenId) {
         }
     }
 }
-
 function updateStatsScreen() {
     const stats = gameData.stats;
     totalCoinsStat.textContent = stats.totalCoins;
@@ -396,49 +590,54 @@ function updateStatsScreen() {
     challengeNormalStat.textContent = stats.kills.challenge.normal;
     challengeRedStat.textContent = stats.kills.challenge.red;
 }
-
-function renderShop() {
+function renderAllShops() {
     shopCoinBalance.textContent = gameData.stats.totalCoins;
-    combColorShop.innerHTML = '';
-    SHOP_ITEMS.colors.forEach(item => {
-        const isUnlocked = gameData.shop.unlockedColors.includes(item.id);
-        const isSelected = gameData.shop.selectedColor === item.id;
+    renderShopCategory('combs', combShop, 'unlockedCombs', 'selectedComb', (ctx, item) => item.draw(ctx, gameData.shop.selectedColor, 60, 40));
+    renderShopCategory('bullets', bulletShop, 'unlockedBullets', 'selectedBullet', (ctx, item) => item.draw(ctx, 30, 20));
+    renderShopCategory('trails', trailShop, 'unlockedTrails', 'selectedTrail', (ctx, item) => { if (item.props) { ctx.fillStyle = item.props.color; ctx.beginPath(); ctx.arc(30, 20, 15, 0, Math.PI*2); ctx.fill(); }});
+    renderShopCategory('colors', combColorShop, 'unlockedColors', 'selectedColor', (ctx, item) => { ctx.fillStyle = item.id; ctx.fillRect(0,0,60,40); });
+    renderShopCategory('backgrounds', backgroundShop, 'unlockedBackgrounds', 'selectedBackground', (ctx, item) => { const tempCanvas = document.createElement('canvas'); tempCanvas.width=60; tempCanvas.height=40; const tempCtx=tempCanvas.getContext('2d'); if(item.init) item.init(tempCanvas, tempCtx); item.draw(tempCanvas, tempCtx); ctx.drawImage(tempCanvas,0,0,60,40); });
+}
+function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, drawFn) {
+    container.innerHTML = '';
+    SHOP_ITEMS[categoryKey].forEach(item => {
+        const isUnlocked = gameData.shop[unlockedKey].includes(item.id);
+        const isSelected = gameData.shop[selectedKey] === item.id;
         const div = document.createElement('div');
         div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
-        div.innerHTML = `<div class="w-full h-10" style="background-color:${item.id};"></div><p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
-        div.onclick = () => handleShopClick('color', item, isUnlocked);
-        combColorShop.appendChild(div);
-    });
-    backgroundShop.innerHTML = '';
-    SHOP_ITEMS.backgrounds.forEach(item => {
-        const isUnlocked = gameData.shop.unlockedBackgrounds.includes(item.id);
-        const isSelected = gameData.shop.selectedBackground === item.id;
-        const div = document.createElement('div');
-        div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
-        div.innerHTML = `<div class="w-full h-10" style="background:${item.style};"></div><p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
-        div.onclick = () => handleShopClick('background', item, isUnlocked);
-        backgroundShop.appendChild(div);
+        
+        let itemDisplay = `<canvas class="mx-auto w-full"></canvas>`;
+        div.innerHTML = `${itemDisplay}<p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${isUnlocked ? 'Выбрано' : `Цена: ${item.cost}`}</p>`;
+        
+        div.onclick = () => handleShopClick(categoryKey, unlockedKey, selectedKey, item, isUnlocked);
+        container.appendChild(div);
+
+        const itemCanvas = div.querySelector('canvas');
+        if (itemCanvas) {
+            const itemCtx = itemCanvas.getContext('2d');
+            itemCanvas.width = 60; itemCanvas.height = 40;
+            drawFn(itemCtx, item);
+        }
     });
 }
-
-function handleShopClick(type, item, isUnlocked) {
+function handleShopClick(categoryKey, unlockedKey, selectedKey, item, isUnlocked) {
     if (isUnlocked) {
-        if (type === 'color') gameData.shop.selectedColor = item.id;
-        if (type === 'background') gameData.shop.selectedBackground = item.id;
+        gameData.shop[selectedKey] = item.id;
     } else {
         if (gameData.stats.totalCoins >= item.cost) {
             gameData.stats.totalCoins -= item.cost;
-            if (type === 'color') { gameData.shop.unlockedColors.push(item.id); gameData.shop.selectedColor = item.id; }
-            if (type === 'background') { gameData.shop.unlockedBackgrounds.push(item.id); gameData.shop.selectedBackground = item.id; }
+            gameData.shop[unlockedKey].push(item.id);
+            gameData.shop[selectedKey] = item.id;
         } else {
-            // Можно добавить сообщение о нехватке монет
             return;
         }
     }
     saveGameData();
-    renderShop();
+    renderAllShops();
 }
 
+// --- Controls & Event Handlers ---
+function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
 function checkOrientation() {
     const orientationWarning = document.getElementById('orientationWarning');
     if (window.innerWidth > window.innerHeight && isTouchDevice) {
@@ -449,8 +648,6 @@ function checkOrientation() {
         orientationWarning.classList.remove('flex');
     }
 }
-
-// --- Event Handlers ---
 playButton.addEventListener('click', () => showScreen('modeSelection'));
 statsButton.addEventListener('click', () => showScreen('statsScreen'));
 settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
@@ -461,50 +658,11 @@ menuButton.addEventListener('click', () => showScreen('mainMenu'));
 document.querySelectorAll('.back-button').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
-
 window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
-
-// --- NEW JOYSTICK LOGIC ---
-function handleTouchStart(e) { 
-    e.preventDefault(); 
-    // Только первое касание активирует джойстик
-    if (joystick.active) return; 
-    const touch = e.changedTouches[0]; 
-    joystick.active = true; 
-    joystick.id = touch.identifier; 
-    // База джойстика появляется там, где коснулись
-    joystick.baseX = joystick.stickX = touch.clientX; 
-    joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; 
-}
-
-function handleTouchMove(e) { 
-    e.preventDefault(); 
-    if (!joystick.active) return; 
-    const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); 
-    if (!touch) return; 
-    const newY = touch.clientY - canvas.getBoundingClientRect().top; 
-    const dx = touch.clientX - joystick.baseX; 
-    const dy = newY - joystick.baseY; 
-    const dist = Math.sqrt(dx * dx + dy * dy); 
-    if (dist > joystick.radius) { 
-        joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; 
-        joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; 
-    } else { 
-        joystick.stickX = touch.clientX; 
-        joystick.stickY = newY; 
-    } 
-}
-
-function handleTouchEnd(e) { 
-    const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); 
-    // Если отпустили именно тот палец, который управлял джойстиком
-    if (touch) { 
-        joystick.active = false; 
-        joystick.id = null; 
-    } 
-}
+function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; const touch = e.changedTouches[0]; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; }
+function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } }
+function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; } }
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
-
 window.addEventListener('resize', () => {
     checkOrientation();
     if(gameContainer.offsetParent !== null) {
@@ -516,16 +674,16 @@ window.addEventListener('resize', () => {
 window.onload = () => {
     try { 
         window.Telegram.WebApp.ready(); 
-        // FIX: Отключаем свайп для закрытия окна в Telegram
         window.Telegram.WebApp.disableVerticalSwipes();
+        userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
     } catch(e) { 
-        console.log('Not in Telegram'); 
+        console.log('Not in Telegram or user ID not available.');
+        userId = 'default_player';
     }
     loadGameData();
     checkOrientation();
     showScreen('mainMenu');
 };
-
 </script>
 </body>
 </html>
