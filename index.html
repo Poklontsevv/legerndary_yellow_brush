@@ -68,12 +68,6 @@
         <p class="text-xl">Загрузка...</p>
     </div>
 
-    <!-- Orientation Warning -->
-    <div id="orientationWarning" class="hidden absolute inset-0 bg-black bg-opacity-90 z-50 flex-col items-center justify-center text-center p-4">
-        <svg class="w-16 h-16 text-white mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        <p class="text-xl">Пожалуйста, поверните ваше устройство вертикально.</p>
-    </div>
-
     <!-- Main Menu -->
     <div id="mainMenu" class="hidden text-center p-4 relative z-10">
         <p id="greeting" class="text-xl mb-4">Привет!</p>
@@ -954,11 +948,6 @@ function gameLoop(timestamp) {
     if (isGameOver) return;
     
     if (!isPaused) {
-        if (window.innerWidth > window.innerHeight && isTouchDevice) {
-            gameLoopId = requestAnimationFrame(gameLoop);
-            return; 
-        }
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         backgroundDrawer.draw(canvas, ctx);
 
@@ -1231,16 +1220,7 @@ function togglePause(forcePause) {
     }
 }
 function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
-function checkOrientation() {
-    const orientationWarning = document.getElementById('orientationWarning');
-    if (window.innerWidth > window.innerHeight && isTouchDevice) {
-        orientationWarning.classList.remove('hidden');
-        orientationWarning.classList.add('flex');
-    } else {
-        orientationWarning.classList.add('hidden');
-        orientationWarning.classList.remove('flex');
-    }
-}
+
 playButton.addEventListener('click', () => showScreen('modeSelection'));
 statsButton.addEventListener('click', () => showScreen('statsScreen'));
 settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
@@ -1266,7 +1246,6 @@ function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; 
 function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; joystick.dx = 0; joystick.dy = 0; } }
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
 window.addEventListener('resize', () => {
-    checkOrientation();
     if(gameContainer.offsetParent !== null) {
        init(); 
     }
@@ -1292,7 +1271,6 @@ window.onload = async () => {
     }
     
     loadGameData();
-    checkOrientation();
     showScreen('mainMenu');
 };
 </script>
