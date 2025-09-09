@@ -31,6 +31,15 @@
             display: block;
         }
 
+        #menuBgCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
         .comb-float { animation: float 3s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
         
@@ -46,10 +55,14 @@
         .shop-item.selected { border-color: #fBBF24; box-shadow: 0 0 10px #fBBF24; }
         .shop-item.locked { filter: grayscale(1) brightness(0.5); }
         .shop-item canvas { height: 40px; }
+        
+        .level-button { border: 4px solid #4b5563; background-color: #334155; }
+        .level-button.completed { border-color: #34d399; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
     
+    <canvas id="menuBgCanvas"></canvas>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center text-center p-4">
         <p class="text-xl">Загрузка...</p>
@@ -62,7 +75,7 @@
     </div>
 
     <!-- Main Menu -->
-    <div id="mainMenu" class="hidden text-center p-4">
+    <div id="mainMenu" class="hidden text-center p-4 relative z-10">
         <p id="greeting" class="text-xl mb-4">Привет!</p>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6" style="text-shadow: 4px 4px 0px #000;">ЛЕГЕНДАРНАЯ</h1>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ЖЁЛТАЯ РАСЧЁСКА</h1>
@@ -75,7 +88,7 @@
     </div>
 
     <!-- Mode Selection -->
-    <div id="modeSelection" class="hidden text-center p-4">
+    <div id="modeSelection" class="hidden text-center p-4 relative z-10">
         <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ РЕЖИМ</h2>
         <button id="relaxModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ОТДЫХА</button>
         <button id="challengeModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ВЫЗОВА</button>
@@ -83,8 +96,8 @@
     </div>
     
     <!-- Game Screen -->
-    <div id="gameContainer" class="hidden w-full h-full flex flex-col relative">
-        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl">
+    <div id="gameContainer" class="hidden w-full h-full flex flex-col">
+        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative">
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
                 <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
@@ -95,14 +108,16 @@
             </div>
             <div>МОНЕТЫ: <span id="score">0</span></div>
         </div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
-            <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
+        <div class="relative flex-grow">
+             <canvas id="gameCanvas" class="absolute inset-0"></canvas>
+             <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
+                <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
+            </div>
         </div>
     </div>
     
     <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center">
+    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10">
          <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
          <p class="text-xl md:text-2xl mb-4">ВАШ СЧЁТ:</p>
          <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
@@ -111,7 +126,7 @@
     </div>
 
     <!-- Statistics Screen -->
-    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg">
+    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg relative z-10">
         <h2 class="text-3xl text-yellow-400 mb-8">ВАША СТАТИСТИКА</h2>
         <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
             <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
@@ -131,7 +146,7 @@
     </div>
     
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col">
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10">
         <!-- Non-scrolling header -->
         <div class="flex-shrink-0">
             <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
@@ -198,6 +213,8 @@ const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const menuBgCanvas = document.getElementById('menuBgCanvas');
+const menuBgCtx = menuBgCanvas.getContext('2d');
 // UI Elements
 const livesEl = document.getElementById('lives');
 const scoreEl = document.getElementById('score');
@@ -239,10 +256,13 @@ let userId = 'default_player';
 let gameMode = 'relax';
 let lives, score, collectedLetters, asmrActive, asmrEndTime;
 let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats, blackGhost;
-let gameLoopId;
+let gameLoopId, menuLoopId;
 let keys = {};
 let isGameOver = false;
 let isPaused = false;
+let menuClouds = [];
+let lastMenuCloudSpawn = 0;
+
 
 // Timers & Intervals
 let shootInterval = 500; let lastShotTime = 0;
@@ -784,24 +804,37 @@ class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed =
 
 // --- Game Data Functions ---
 function loadGameData() {
-    const savedData = localStorage.getItem('legendaryCombData_' + userId);
-    if (savedData) {
-        gameData = JSON.parse(savedData);
-        if (!gameData.shop.unlockedCombs) {
-            gameData.shop = {...defaultGameData.shop, ...gameData.shop};
-        }
-        if (!gameData.stats.bestScore) { // Ensure old save data gets the new property
-            gameData.stats.bestScore = { relax: 0, challenge: 0 };
-        }
-        ['relax', 'challenge'].forEach(mode => {
-            if(!gameData.stats.kills[mode].black) {
-                gameData.stats.kills[mode].black = 0;
+    try {
+        const savedData = localStorage.getItem('legendaryCombData_' + userId);
+        if (savedData) {
+            const parsedData = JSON.parse(savedData);
+            // Simple check to see if data structure is old
+            if (parsedData.stats && parsedData.stats.kills && parsedData.shop) {
+                 gameData = deepMerge(JSON.parse(JSON.stringify(defaultGameData)), parsedData);
+                 saveGameData(); // Re-save with potentially new fields
+            } else {
+                 throw new Error("Old data format");
             }
-        });
-    } else {
+        } else {
+            gameData = JSON.parse(JSON.stringify(defaultGameData));
+        }
+    } catch (e) {
+        console.warn("Could not parse saved data, resetting to default.", e);
         gameData = JSON.parse(JSON.stringify(defaultGameData));
+        saveGameData();
     }
 }
+
+function deepMerge(target, source) {
+    for (const key in source) {
+        if (source[key] instanceof Object && key in target) {
+            Object.assign(source[key], deepMerge(target[key], source[key]))
+        }
+    }
+    Object.assign(target || {}, source)
+    return target
+}
+
 function saveGameData() {
     localStorage.setItem('legendaryCombData_' + userId, JSON.stringify(gameData));
 }
@@ -816,7 +849,7 @@ function init() {
     backgroundDrawer = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
     if (backgroundDrawer.init) backgroundDrawer.init(canvas, ctx);
 
-    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false; isPaused = false;
+    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0;
     player = new Player(); 
     bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
@@ -966,6 +999,50 @@ function gameLoop(timestamp) {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
+// --- Menu Loop ---
+function startMenuLoop() {
+    stopMenuLoop(); // Ensure no multiple loops
+    menuBgCanvas.width = window.innerWidth;
+    menuBgCanvas.height = window.innerHeight;
+    menuClouds = [];
+    for(let i=0; i<5; i++) {
+         menuClouds.push(new Cloud());
+    }
+    menuLoop();
+}
+
+function stopMenuLoop() {
+    if (menuLoopId) {
+        cancelAnimationFrame(menuLoopId);
+        menuLoopId = null;
+    }
+}
+
+function menuLoop(timestamp) {
+    menuBgCtx.clearRect(0, 0, menuBgCanvas.width, menuBgCanvas.height);
+    const bgImg = gameImages.blueSky;
+    if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+        menuBgCtx.drawImage(bgImg, 0, 0, menuBgCanvas.width, menuBgCanvas.height);
+    } else {
+        menuBgCtx.fillStyle = '#ADD8E6';
+        menuBgCtx.fillRect(0,0, menuBgCanvas.width, menuBgCanvas.height);
+    }
+
+    if (timestamp - lastMenuCloudSpawn > 7000) {
+        menuClouds.push(new Cloud());
+        lastMenuCloudSpawn = timestamp;
+    }
+
+    menuClouds.forEach(c => {
+        c.update();
+        c.draw(menuBgCtx);
+    });
+
+    menuClouds = menuClouds.filter(c => c.x + c.width > 0);
+    
+    menuLoopId = requestAnimationFrame(menuLoop);
+}
+
 // --- UI Management ---
 function updateUI() {
     scoreEl.textContent = score;
@@ -983,6 +1060,14 @@ function updateUI() {
 function showScreen(screenId) {
     [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen, loadingScreen].forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
+
+    if (screenId.includes('mainMenu') || screenId.includes('modeSelection') || screenId.includes('statsScreen') || screenId.includes('settingsScreen')) {
+        startMenuLoop();
+        menuBgCanvas.classList.remove('hidden');
+    } else {
+        stopMenuLoop();
+        menuBgCanvas.classList.add('hidden');
+    }
 
     if (screenId === 'settingsScreen') {
         renderAllShops();
@@ -1009,13 +1094,12 @@ function showScreen(screenId) {
 }
 function updateStatsScreen() {
     const stats = gameData.stats;
+    const totalRelaxKills = stats.kills.relax.normal + stats.kills.relax.red + stats.kills.relax.black;
+    const totalChallengeKills = stats.kills.challenge.normal + stats.kills.challenge.red + stats.kills.challenge.black;
+
     totalCoinsStat.textContent = stats.totalCoins;
-    relaxNormalStat.textContent = stats.kills.relax.normal;
-    relaxRedStat.textContent = stats.kills.relax.red;
-    relaxBlackStat.textContent = stats.kills.relax.black;
-    challengeNormalStat.textContent = stats.kills.challenge.normal;
-    challengeRedStat.textContent = stats.kills.challenge.red;
-    challengeBlackStat.textContent = stats.kills.challenge.black;
+    relaxKillsStat.textContent = totalRelaxKills;
+    challengeKillsStat.textContent = totalChallengeKills;
     relaxBestScoreStat.textContent = stats.bestScore.relax;
     challengeBestScoreStat.textContent = stats.bestScore.challenge;
 }
@@ -1168,6 +1252,7 @@ document.querySelectorAll('.back-button').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
 pauseButton.addEventListener('click', () => togglePause());
+pauseScreen.addEventListener('click', () => togglePause(false)); // Unpause on click
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
         togglePause(true);
