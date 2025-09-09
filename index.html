@@ -31,15 +31,6 @@
             display: block;
         }
 
-        #menuBgCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-
         .comb-float { animation: float 3s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
         
@@ -55,14 +46,10 @@
         .shop-item.selected { border-color: #fBBF24; box-shadow: 0 0 10px #fBBF24; }
         .shop-item.locked { filter: grayscale(1) brightness(0.5); }
         .shop-item canvas { height: 40px; }
-        
-        .level-button { border: 4px solid #4b5563; background-color: #334155; }
-        .level-button.completed { border-color: #34d399; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
     
-    <canvas id="menuBgCanvas"></canvas>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center text-center p-4">
         <p class="text-xl">Загрузка...</p>
@@ -75,7 +62,7 @@
     </div>
 
     <!-- Main Menu -->
-    <div id="mainMenu" class="hidden text-center p-4 relative z-10">
+    <div id="mainMenu" class="hidden text-center p-4">
         <p id="greeting" class="text-xl mb-4">Привет!</p>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6" style="text-shadow: 4px 4px 0px #000;">ЛЕГЕНДАРНАЯ</h1>
         <h1 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ЖЁЛТАЯ РАСЧЁСКА</h1>
@@ -87,95 +74,64 @@
         </div>
     </div>
 
-    <!-- Game Mode Selection -->
-    <div id="gameModeSelection" class="hidden text-center p-4 relative z-10">
-        <h2 class="text-3xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ РЕЖИМ ИГРЫ</h2>
-        <button id="storyModeBtn" class="pixel-button text-xl px-8 py-4 mb-6 w-72">СЮЖЕТНЫЙ РЕЖИМ</button>
-        <button id="endlessModeBtn" class="pixel-button text-xl px-8 py-4 mb-6 w-72">БЕСКОНЕЧНЫЙ РЕЖИМ</button>
-        <button data-target="mainMenu" class="back-button pixel-button text-xl px-8 py-4 w-72">НАЗАД</button>
-    </div>
-
-    <!-- Endless Mode Selection -->
-    <div id="endlessModeSelection" class="hidden text-center p-4 relative z-10">
-        <h2 class="text-3xl font-bold text-yellow-400 mb-12">БЕСКОНЕЧНЫЙ РЕЖИМ</h2>
-        <button id="relaxModeButton" class="pixel-button text-xl px-8 py-4 mb-6 w-72">РЕЖИМ ОТДЫХА</button>
-        <button id="challengeModeButton" class="pixel-button text-xl px-8 py-4 mb-6 w-72">РЕЖИМ ВЫЗОВА</button>
-        <button data-target="gameModeSelection" class="back-button pixel-button text-xl px-8 py-4 w-72">НАЗАД</button>
-    </div>
-
-    <!-- Level Selection -->
-    <div id="levelSelectionScreen" class="hidden text-center p-4 w-full max-w-xl relative z-10">
-        <h2 class="text-3xl font-bold text-yellow-400 mb-8">ВЫБОР УРОВНЯ</h2>
-        <div id="levelGrid" class="grid grid-cols-3 sm:grid-cols-5 gap-4"></div>
-        <button data-target="gameModeSelection" class="back-button pixel-button text-xl mt-8 px-8 py-4">НАЗАД</button>
-    </div>
-
-    <!-- Level Briefing Screen -->
-    <div id="levelBriefingScreen" class="hidden text-center p-4 w-full max-w-lg flex flex-col items-center relative z-10">
-        <h2 id="levelTitle" class="text-3xl text-yellow-400 mb-6">УРОВЕНЬ 1</h2>
-        <div class="bg-gray-800 p-4 mb-8 text-left">
-            <p id="levelStory" class="mb-4">История уровня...</p>
-            <h3 class="text-xl text-cyan-400">Задачи:</h3>
-            <ul id="levelObjectives" class="list-disc list-inside"></ul>
-        </div>
-        <button id="startLevelButton" class="pixel-button text-xl px-8 py-4 mb-4">НАЧАТЬ УРОВЕНЬ</button>
-        <button data-target="levelSelectionScreen" class="back-button pixel-button text-xl px-8 py-4">НАЗАД</button>
+    <!-- Mode Selection -->
+    <div id="modeSelection" class="hidden text-center p-4">
+        <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ РЕЖИМ</h2>
+        <button id="relaxModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ОТДЫХА</button>
+        <button id="challengeModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ВЫЗОВА</button>
+        <button data-target="mainMenu" class="back-button pixel-button text-xl md:text-2xl px-8 py-4 w-64">НАЗАД</button>
     </div>
     
     <!-- Game Screen -->
-    <div id="gameContainer" class="hidden w-full h-full flex flex-col">
-        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative">
+    <div id="gameContainer" class="hidden w-full h-full flex flex-col relative">
+        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl">
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
                 <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
             </div>
-            <div id="objectiveContainer" class="hidden text-cyan-400">ЗАДАЧА: <span id="objectiveProgress"></span></div>
             <div id="asmrContainer" class="flex items-center gap-2">
                 <div id="asmrTimerContainer" class="hidden font-bold text-cyan-400">ASMR: <span id="asmrTimer">20</span></div>
                 <div id="asmrLetters"><span id="letterA" class="opacity-30">A</span><span id="letterS" class="opacity-30">S</span><span id="letterM" class="opacity-30">M</span><span id="letterR" class="opacity-30">R</span></div>
             </div>
-            <div><span id="scoreType">МОНЕТЫ</span>: <span id="score">0</span></div>
+            <div>МОНЕТЫ: <span id="score">0</span></div>
         </div>
-        <div class="relative flex-grow">
-             <canvas id="gameCanvas" class="absolute inset-0"></canvas>
-             <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
-                <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
-            </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
+            <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
         </div>
     </div>
     
-    <!-- Game Over/Win Screen -->
-    <div id="endScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10">
-         <h2 id="endScreenTitle" class="text-3xl md:text-5xl font-bold mb-8"></h2>
-         <p id="endScreenSubtitle" class="text-xl md:text-2xl mb-4"></p>
-         <p id="endScreenScore" class="text-4xl md:text-6xl text-yellow-400 mb-12"></p>
-         <button id="nextLevelButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 hidden">СЛЕД. УРОВЕНЬ</button>
-         <button id="restartButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6">ИГРАТЬ ЗАНОВО</button>
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center">
+         <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
+         <p class="text-xl md:text-2xl mb-4">ВАШ СЧЁТ:</p>
+         <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
+         <button id="restartButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6">НАЧАТЬ ЗАНОВО</button>
          <button id="menuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
     </div>
 
     <!-- Statistics Screen -->
-    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-2xl relative z-10">
+    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg">
         <h2 class="text-3xl text-yellow-400 mb-8">ВАША СТАТИСТИКА</h2>
-        <div class="flex flex-col md:flex-row gap-4">
-            <div class="bg-gray-800 p-4 text-left text-sm md:text-base flex-1">
-                <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
-                <h3 class="text-xl mt-4 mb-2 text-cyan-400">Бесконечный режим:</h3>
-                <p>Рекорд (Отдых): <span id="relaxBestScoreStat" class="text-green-400">0</span></p>
-                <p>Рекорд (Вызов): <span id="challengeBestScoreStat" class="text-green-400">0</span></p>
-                <p class="mt-2">Убито врагов (Отдых): <span id="relaxKillsStat" class="text-gray-300">0</span></p>
-                <p>Убито врагов (Вызов): <span id="challengeKillsStat" class="text-gray-300">0</span></p>
-            </div>
-            <div class="bg-gray-800 p-4 text-left text-sm md:text-base flex-1">
-                <h3 class="text-xl mb-2 text-cyan-400">Сюжет (лучшее время):</h3>
-                <div id="levelTimesStat" class="grid grid-cols-2 gap-x-4"></div>
-            </div>
+        <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
+            <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Отдыха:</h3>
+            <p>Убито белых призраков: <span id="relaxNormalStat" class="text-gray-300">0</span></p>
+            <p>Убито красных призраков: <span id="relaxRedStat" class="text-red-400">0</span></p>
+            <p>Убито чёрных призраков: <span id="relaxBlackStat" class="text-purple-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Вызова:</h3>
+            <p>Убито белых призраков: <span id="challengeNormalStat" class="text-gray-300">0</span></p>
+            <p>Убито красных призраков: <span id="challengeRedStat" class="text-red-400">0</span></p>
+            <p>Убито чёрных призраков: <span id="challengeBlackStat" class="text-purple-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-yellow-400">Лучшие результаты:</h3>
+            <p>Режим Отдыха: <span id="relaxBestScoreStat" class="text-green-400">0</span></p>
+            <p>Режим Вызова: <span id="challengeBestScoreStat" class="text-green-400">0</span></p>
         </div>
         <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
     </div>
     
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10">
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col">
         <!-- Non-scrolling header -->
         <div class="flex-shrink-0">
             <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
@@ -224,13 +180,13 @@
 // --- Get DOM Elements ---
 const loadingScreen = document.getElementById('loadingScreen');
 const mainMenu = document.getElementById('mainMenu');
-const modeSelection = document.getElementById('endlessModeSelection');
+const modeSelection = document.getElementById('modeSelection');
 const menuCombCanvas = document.getElementById('menuCombCanvas');
 const combShop = document.getElementById('combShop');
 const bulletShop = document.getElementById('bulletShop');
 const trailShop = document.getElementById('trailShop');
 const gameContainer = document.getElementById('gameContainer');
-const endScreen = document.getElementById('endScreen');
+const gameOverScreen = document.getElementById('gameOverScreen');
 const statsScreen = document.getElementById('statsScreen');
 const settingsScreen = document.getElementById('settingsScreen');
 const playButton = document.getElementById('playButton');
@@ -242,15 +198,10 @@ const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const menuBgCanvas = document.getElementById('menuBgCanvas');
-const menuBgCtx = menuBgCanvas.getContext('2d');
 // UI Elements
 const livesEl = document.getElementById('lives');
 const scoreEl = document.getElementById('score');
-const scoreTypeEl = document.getElementById('scoreType');
-const endScreenTitle = document.getElementById('endScreenTitle');
-const endScreenSubtitle = document.getElementById('endScreenSubtitle');
-const endScreenScore = document.getElementById('endScreenScore');
+const finalScoreEl = document.getElementById('finalScore');
 const letterA_El = document.getElementById('letterA');
 const letterS_El = document.getElementById('letterS');
 const letterM_El = document.getElementById('letterM');
@@ -261,16 +212,16 @@ const asmrTimerEl = document.getElementById('asmrTimer');
 const greetingEl = document.getElementById('greeting');
 const pauseButton = document.getElementById('pauseButton');
 const pauseScreen = document.getElementById('pauseScreen');
-const objectiveContainer = document.getElementById('objectiveContainer');
-const objectiveProgress = document.getElementById('objectiveProgress');
-const nextLevelButton = document.getElementById('nextLevelButton');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
+const relaxNormalStat = document.getElementById('relaxNormalStat');
+const relaxRedStat = document.getElementById('relaxRedStat');
+const challengeNormalStat = document.getElementById('challengeNormalStat');
+const challengeRedStat = document.getElementById('challengeRedStat');
 const relaxBestScoreStat = document.getElementById('relaxBestScoreStat');
 const challengeBestScoreStat = document.getElementById('challengeBestScoreStat');
-const relaxKillsStat = document.getElementById('relaxKillsStat');
-const challengeKillsStat = document.getElementById('challengeKillsStat');
-const levelTimesStat = document.getElementById('levelTimesStat');
+const relaxBlackStat = document.getElementById('relaxBlackStat');
+const challengeBlackStat = document.getElementById('challengeBlackStat');
 // Shop Elements
 const shopCoinBalance = document.getElementById('shopCoinBalance');
 const combColorShop = document.getElementById('combColorShop');
@@ -281,32 +232,17 @@ const purchaseItemName = document.getElementById('purchaseItemName');
 const buyWithCoinsBtn = document.getElementById('buyWithCoinsBtn');
 const buyWithStarsBtn = document.getElementById('buyWithStarsBtn');
 const cancelPurchaseBtn = document.getElementById('cancelPurchaseBtn');
-// Mode & Level Selection
-const gameModeSelection = document.getElementById('gameModeSelection');
-const storyModeBtn = document.getElementById('storyModeBtn');
-const endlessModeBtn = document.getElementById('endlessModeBtn');
-const levelSelectionScreen = document.getElementById('levelSelectionScreen');
-const levelGrid = document.getElementById('levelGrid');
-const levelBriefingScreen = document.getElementById('levelBriefingScreen');
-const levelTitle = document.getElementById('levelTitle');
-const levelStory = document.getElementById('levelStory');
-const levelObjectives = document.getElementById('levelObjectives');
-const startLevelButton = document.getElementById('startLevelButton');
 
 
 // --- Game State & Data ---
 let userId = 'default_player';
 let gameMode = 'relax';
-let currentLevel = 0;
-let levelTimerStart = 0;
-let lives, score, collectedLetters, asmrActive, asmrEndTime, kills;
-let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats, blackGhost, boss;
-let gameLoopId, menuLoopId;
+let lives, score, collectedLetters, asmrActive, asmrEndTime;
+let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats, blackGhost;
+let gameLoopId;
 let keys = {};
 let isGameOver = false;
 let isPaused = false;
-let menuClouds = [];
-let lastMenuCloudSpawn = 0;
 
 // Timers & Intervals
 let shootInterval = 500; let lastShotTime = 0;
@@ -331,8 +267,7 @@ const defaultGameData = {
     stats: { 
         totalCoins: 0, 
         kills: { relax: { normal: 0, red: 0, black: 0 }, challenge: { normal: 0, red: 0, black: 0 } },
-        bestScore: { relax: 0, challenge: 0 },
-        bestTimes: {}
+        bestScore: { relax: 0, challenge: 0 }
     },
     shop: { 
         unlockedColors: ['#fBBF24'], selectedColor: '#fBBF24',
@@ -378,199 +313,902 @@ function preloadImages() {
 
 // --- DRAWING FUNCTIONS & SHOP ITEMS ---
 const DRAW_FUNCTIONS = {
-    // ... (Drawing functions remain the same)
+    drawPumpkin: (ctx, color, width, height) => {
+        ctx.fillStyle = '#e2802b';
+        ctx.beginPath();
+        ctx.arc(width/2, height/2, width/2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(width/2 - 5, height/2 - width/2 - 5, 10, 10);
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.moveTo(width*0.2, height*0.4); ctx.lineTo(width*0.4, height*0.3); ctx.lineTo(width*0.3, height*0.5); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(width*0.8, height*0.4); ctx.lineTo(width*0.6, height*0.3); ctx.lineTo(width*0.7, height*0.5); ctx.fill();
+        ctx.fillRect(width*0.3, height*0.7, width*0.4, 5);
+    },
+    drawPaperPlane: (ctx, color, width, height) => {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.moveTo(width * 0.1, height * 0.1);
+        ctx.lineTo(width * 0.9, height * 0.5);
+        ctx.lineTo(width * 0.1, height * 0.9);
+        ctx.closePath();
+        ctx.fill();
+    },
+    drawChocolate: (ctx, color, width, height) => {
+        ctx.fillStyle = '#5c2d08';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#8b4513';
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+                ctx.fillRect(i * (width/3) + 2, j * (height/2) + 2, width/3 - 4, height/2 - 4);
+            }
+        }
+    },
+    drawGun: (ctx, color, width, height) => {
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(0, height * 0.2, width * 0.8, height * 0.4);
+        ctx.fillRect(width * 0.2, height * 0.6, width * 0.2, height * 0.4);
+    },
+    drawClassicBullet: (ctx) => {
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(0, 0, 15, 5);
+    },
+    drawCandyBullet: (ctx) => {
+        ctx.fillStyle = Math.random() > 0.5 ? '#ef4444' : '#34d399';
+        ctx.beginPath();
+        ctx.moveTo(0, 7.5); ctx.lineTo(7.5, 0); ctx.lineTo(15, 7.5); ctx.lineTo(7.5, 15); ctx.closePath();
+        ctx.fill();
+    },
+    drawPlaneBullet: (ctx) => {
+        DRAW_FUNCTIONS.drawPaperPlane(ctx, null, 15, 15);
+    },
+    drawChocoBullet: (ctx) => {
+        ctx.fillStyle = '#5c2d08';
+        ctx.fillRect(0, 0, 10, 10);
+    },
+    drawRealBullet: (ctx) => {
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.arc(10, 7.5, 5, -Math.PI/2, Math.PI/2);
+        ctx.fillRect(0, 2.5, 10, 10);
+        ctx.fill();
+    },
+    drawDonut: (ctx, x, y, size) => {
+        const outerRadius = size / 2;
+        const innerRadius = size / 4;
+        const icingColor = `hsl(${Math.random() * 360}, 70%, 70%)`;
+        
+        ctx.fillStyle = '#d2b48c'; // Dough color
+        ctx.beginPath();
+        ctx.arc(x, y, outerRadius, 0, Math.PI * 2, false);
+        ctx.arc(x, y, innerRadius, 0, Math.PI * 2, true);
+        ctx.fill();
+        
+        ctx.fillStyle = icingColor; // Icing color
+        ctx.beginPath();
+        ctx.arc(x, y, outerRadius * 0.9, 0, Math.PI * 2, false);
+        ctx.arc(x, y, innerRadius * 1.2, 0, Math.PI * 2, true);
+        ctx.fill();
+    }
 };
 
 const SHOP_ITEMS = {
-    // ... (Shop items remain the same)
-};
+    combs: [
+        { 
+            id: 'classic', 
+            name: 'Классика', 
+            cost: 0, 
+            starCost: 0, 
+            draw: (ctx, color, containerWidth, containerHeight) => {
+                const img = gameImages.classicComb;
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = containerWidth;
+                    let drawHeight = drawWidth / aspectRatio;
+                    if (drawHeight > containerHeight) {
+                        drawHeight = containerHeight;
+                        drawWidth = drawHeight * aspectRatio;
+                    }
+                    const x = (containerWidth - drawWidth) / 2;
+                    const y = (containerHeight - drawHeight) / 2;
+                    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+                    if (color !== '#fBBF24') { // Apply tint
+                        ctx.globalCompositeOperation = 'source-atop';
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = 0.7;
+                        ctx.fillRect(x, y, drawWidth, drawHeight);
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.globalAlpha = 1.0;
+                    }
+                } else { ctx.fillStyle = color; ctx.fillRect(0, 0, containerWidth, containerHeight); }
+            }
+        },
+        { 
+            id: 'superBrush', 
+            name: 'Супер-браш', 
+            cost: 0, 
+            starCost: 10, 
+            draw: (ctx, color, containerWidth, containerHeight) => {
+                const img = gameImages.superBrush;
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = containerWidth;
+                    let drawHeight = drawWidth / aspectRatio;
+                    if (drawHeight > containerHeight) {
+                        drawHeight = containerHeight;
+                        drawWidth = drawHeight * aspectRatio;
+                    }
+                    const x = (containerWidth - drawWidth) / 2;
+                    const y = (containerHeight - drawHeight) / 2;
+                    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+                } else { ctx.fillStyle = '#ff00ff'; ctx.fillRect(0, 0, containerWidth, containerHeight); }
+            }
+        },
+        { id: 'pumpkin', name: 'Тыква', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPumpkin },
+        { id: 'plane', name: 'Самолётик', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPaperPlane },
+        { id: 'choco', name: 'Шоколадка', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawChocolate },
+        { id: 'gun', name: 'Пистолет', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawGun },
+    ],
+    bullets: [
+        { id: 'classic', name: 'Расчёски', cost: 0, starCost: 0, draw: DRAW_FUNCTIONS.drawClassicBullet },
+        { id: 'candy', name: 'Конфеты', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawCandyBullet },
+        { id: 'plane', name: 'Самолётики', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawPlaneBullet },
+        { id: 'choco', name: 'Шоко-пули', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawChocoBullet },
+        { id: 'real', name: 'Пули', cost: 0, starCost: 3, draw: DRAW_FUNCTIONS.drawRealBullet },
+    ],
+    trails: [
+        { id: 'none', name: 'Нет', cost: 0, starCost: 0 },
+        { id: 'sparks', name: 'Искры', cost: 0, starCost: 2, props: { color: '#facc15' } },
+        { id: 'smoke', name: 'Дым', cost: 0, starCost: 2, props: { color: '#a1a1aa' } },
+        { id: 'rainbow', name: 'Радуга', cost: 0, starCost: 4, props: { color: `hsl(${Math.random() * 360}, 100%, 70%)` } }
+    ],
+    colors: [
+        { id: '#fBBF24', name: 'Жёлтая', cost: 0, starCost: 0 }, { id: '#34D399', name: 'Мятная', cost: 0, starCost: 1 },
+        { id: '#F87171', name: 'Красная', cost: 0, starCost: 1 }, { id: '#A78BFA', name: 'Лиловая', cost: 0, starCost: 1 },
+        { id: '#60A5FA', name: 'Голубая', cost: 0, starCost: 1 }, { id: '#F472B6', name: 'Розовая', cost: 0, starCost: 1 },
+        { id: '#ffffff', name: 'Белая', cost: 0, starCost: 1 }, { id: '#000000', name: 'Чёрная', cost: 0, starCost: 1 },
+    ],
+    backgrounds: [
+        { id: 'default', name: 'Небо', cost: 0, starCost: 0, init: ()=>{}, draw: (c,ct) => { 
+            const img = gameImages.blueSky;
+            if (img && img.complete && img.naturalWidth > 0) {
+                ct.drawImage(img, 0, 0, c.width, c.height);
+            } else {
+                ct.fillStyle = '#ADD8E6'; 
+                ct.fillRect(0,0,c.width,c.height);
+            }
+        }},
+        { id: 'space', name: 'Космос', cost: 0, starCost: 8, 
+            init: (c, ct) => { 
+                ct.stars = []; 
+                for(let i=0; i<100; i++) ct.stars.push({x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*1.5});
+            }, 
+            draw: (c,ct) => { 
+                ct.fillStyle = '#000010'; ct.fillRect(0,0,c.width,c.height); 
+                ct.fillStyle = '#FFF'; ct.stars.forEach(s => { s.x -= 0.1; if(s.x < 0) s.x = c.width; ct.beginPath(); ct.arc(s.x, s.y, s.r, 0, Math.PI*2); ct.fill(); }); 
+            }
+        },
+        { id: 'halloween', name: 'Хэллоуин', cost: 0, starCost: 8, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#4c1d95'; ct.fillRect(0,0,c.width,c.height); }},
+        { id: 'mountains', name: 'Горы', cost: 0, starCost: 8, 
+            init: (c, ct) => {
+                ct.mountains = [];
+                for(let i=0; i<3; i++) {
+                    const startX = i * c.width / 2;
+                    ct.mountains.push({ x: startX, base: c.height, peak1x: startX + c.width*0.3, peak1y: c.height*0.6, peak2x: startX + c.width*0.6, peak2y: c.height*0.8, endX: startX + c.width});
+                }
+            },
+            draw: (c,ct) => { 
+                ct.fillStyle = '#ADD8E6'; ct.fillRect(0,0,c.width,c.height);
+                ct.mountains.forEach(m => {
+                    m.x -= 0.5; // Parallax speed
+                    if(m.x + m.endX < 0) m.x += c.width * 1.5;
 
-// --- LEVEL DATA ---
-const LEVELS = [
-    // ... (Level data defined here)
-];
+                    ctx.fillStyle = '#6b7280';
+                    ctx.beginPath();
+                    ctx.moveTo(m.x, m.base);
+                    ctx.lineTo(m.peak1x, m.peak1y);
+                    ctx.lineTo(m.peak2x, m.peak2y);
+                    ctx.lineTo(m.endX, m.base);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = 'white'; // Snow
+                    ctx.beginPath();
+                    ctx.moveTo(m.peak1x, m.peak1y);
+                    ctx.lineTo(m.peak1x - 20, m.peak1y + 40);
+                    ctx.lineTo(m.peak1x + 20, m.peak1y + 40);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+            }
+        },
+        { id: 'sweets', name: 'Сладости', cost: 0, starCost: 8, init: ()=>{}, draw: (c,ct) => { ct.fillStyle = '#fef3c7'; ct.fillRect(0,0,c.width,c.height); }}
+    ]
+};
 
 // --- Game Object Classes ---
 class Player {
-    // ... (Player class remains the same)
+    constructor() {
+        this.speed = 8;
+        this.lastTrailTime = 0;
+        
+        const img = gameImages.classicComb;
+        if (img && img.complete && img.naturalWidth > 0) {
+            const aspectRatio = img.height / img.width;
+            this.width = 60; // Base width
+            this.height = this.width * aspectRatio;
+        } else {
+            this.width = 60;
+            this.height = 60; // Fallback size
+        }
+
+        this.x = this.width / 2;
+        this.y = canvas.height / 2;
+    }
+    draw(ctx) {
+        const item = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
+        const color = gameData.shop.selectedColor;
+        
+        let width = this.width;
+        let height = this.height;
+        const img = gameImages[item.id];
+        if (img && img.complete && img.naturalWidth > 0) {
+             const aspectRatio = img.height / img.width;
+             height = width * aspectRatio;
+        }
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        item.draw(ctx, color, width, height);
+        ctx.restore();
+    }
+    update() {
+        let dx = 0, dy = 0;
+
+        if (joystick.active) {
+            dx = joystick.dx;
+            dy = joystick.dy;
+        } else {
+            // Keyboard controls
+            if (keys['ArrowUp'] || keys['w']) dy = -1;
+            if (keys['ArrowDown'] || keys['s']) dy = 1;
+            if (keys['ArrowLeft'] || keys['a']) dx = -1;
+            if (keys['ArrowRight'] || keys['d']) dx = 1;
+
+            // Normalize for diagonal keyboard movement
+            if (dx !== 0 && dy !== 0) {
+                const length = Math.sqrt(2);
+                dx /= length;
+                dy /= length;
+            }
+        }
+        
+        this.x += dx * this.speed;
+        this.y += dy * this.speed;
+        
+        if (this.y < 0) this.y = 0; if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
+        if (this.x < 0) this.x = 0; if (this.x > canvas.width / 3 - this.width) this.x = canvas.width / 3 - this.width;
+
+        if (dx !== 0 || dy !== 0) {
+            if (Date.now() - this.lastTrailTime > 50) {
+                const trail = SHOP_ITEMS.trails.find(t => t.id === gameData.shop.selectedTrail);
+                if (trail && trail.id !== 'none') {
+                    let trailColor = trail.props.color;
+                    if (trail.id === 'rainbow') trailColor = `hsl(${Date.now()/10 % 360}, 100%, 70%)`;
+                    trailParticles.push(new TrailParticle(this.x + this.width/2, this.y + this.height/2, {color: trailColor}));
+                    this.lastTrailTime = Date.now();
+                }
+            }
+        }
+    }
 }
 class Bullet {
-    // ... (Bullet class remains the same)
+    constructor(x, y, dy = 0) {
+        this.x = x; this.y = y; this.width = 15; this.height = 15; this.speed = 10; this.dy = dy;
+        const bulletDef = SHOP_ITEMS.bullets.find(b => b.id === gameData.shop.selectedBullet);
+        this.drawFn = bulletDef.draw;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        this.drawFn(ctx);
+        ctx.restore();
+    }
+    update() { this.x += this.speed; this.y += this.dy; }
 }
 class TrailParticle {
-    // ... (TrailParticle class remains the same)
+    constructor(x, y, props) {
+        this.x = x; this.y = y; this.size = Math.random() * 5 + 8;
+        this.speedX = Math.random() * 0.5 - 0.25; this.speedY = Math.random() * 0.5 - 0.25;
+        this.color = props.color;
+        this.life = 100; this.maxLife = 100;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life / this.maxLife;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * (this.life / this.maxLife), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+    update() {
+        this.x += this.speedX; this.y += this.speedY;
+        this.life -= 4;
+    }
 }
 class Enemy {
-    // ... (Enemy class remains the same)
+    constructor() {
+        this.width = 50;
+        const img = gameImages.whiteGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 50; // Fallback
+        }
+        this.x = canvas.width;
+        this.y = Math.random() * (canvas.height - this.height);
+        this.speed = Math.random() * 2 + 2;
+        this.shoots = Math.random() > 0.6;
+        this.lastShot = Date.now();
+        this.shootCooldown = Math.random() * 2000 + 1500;
+    }
+    draw(ctx) {
+        const img = gameImages.whiteGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
+    }
+    update() {
+        this.x -= this.speed * speedMultiplier;
+        if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) {
+            enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2));
+            this.lastShot = Date.now();
+        }
+    }
 }
 class RedEnemy extends Enemy {
-    // ... (RedEnemy class remains the same)
+    constructor() {
+        super();
+        this.health = 2;
+        const img = gameImages.redGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 50; // Fallback
+        }
+        this.speed = Math.random() * 1 + 1.5;
+        this.shoots = true;
+    }
+    draw(ctx) {
+        const img = gameImages.redGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
+    }
 }
 class BlackGhost extends Enemy {
-    // ... (BlackGhost class remains the same)
+    constructor() {
+        super();
+        this.width = 70; // Bigger
+        const img = gameImages.blackGhost;
+        if (img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 70; // Fallback
+        }
+        this.x = canvas.width - this.width;
+        this.y = Math.random() * (canvas.height - this.height);
+        this.speed = 2;
+        this.health = 4;
+        this.shoots = true;
+        this.shootCooldown = 1500;
+        this.dx = -1; // Patrolling direction
+    }
+    draw(ctx) {
+        const img = gameImages.blackGhost;
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
+    }
+    update() {
+        // Vertical movement: follow player with a delay
+        if (player) {
+            this.y += (player.y - this.y) * 0.04;
+        }
+
+        // Horizontal movement: patrol the right two-thirds of the screen
+        this.x += this.dx * this.speed;
+        if (this.x < canvas.width / 3) {
+            this.x = canvas.width / 3;
+            this.dx = 1; // Move right
+        }
+        if (this.x > canvas.width - this.width) {
+            this.x = canvas.width - this.width;
+            this.dx = -1; // Move left
+        }
+        
+        // Shooting
+        if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) {
+            enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2));
+            this.lastShot = Date.now();
+        }
+    }
 }
-class Boss {
-    // ... (New Boss class implemented here)
-}
-class Lightning {
-    // ... (New Lightning class implemented here)
-}
-class Collectible { 
-    // ... (Collectible class remains the same)
-}
-class Particle {
-    // ... (Particle class remains the same)
-}
+class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { const img = gameImages.coin; if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, this.x, this.y, this.size, this.size); } } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
+class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw(ctx) { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
 class Cloud {
-    // ... (Cloud class remains the same)
+    constructor() {
+        this.x = canvas.width + Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.isBig = Math.random() > 0.5;
+        this.image = this.isBig ? gameImages.cloudBig : gameImages.cloudSmall;
+        this.width = this.isBig ? (Math.random() * 100 + 150) : (Math.random() * 50 + 80);
+        this.speed = Math.random() * 1 + 0.5;
+        this.opacity = Math.random() * 0.3 + 0.4;
+    }
+    draw(ctx) {
+        if (gameData.shop.selectedBackground === 'sweets') {
+            DRAW_FUNCTIONS.drawDonut(ctx, this.x, this.y, this.width);
+        } else if (gameData.shop.selectedBackground === 'default' || gameData.shop.selectedBackground === 'mountains') {
+             if (this.image && this.image.complete && this.image.naturalWidth > 0) {
+                ctx.globalAlpha = this.opacity;
+                const aspectRatio = this.image.height / this.image.width;
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.width * aspectRatio);
+                ctx.globalAlpha = 1.0;
+            }
+        } else {
+             ctx.fillStyle = `rgba(107, 114, 128, ${this.opacity})`;
+             const size = this.width;
+             ctx.beginPath();
+             ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+             ctx.arc(this.x + size * 0.8, this.y, size * 0.8, 0, Math.PI * 2);
+             ctx.arc(this.x + size * 0.4, this.y - size * 0.3, size * 0.7, 0, Math.PI * 2);
+             ctx.fill();
+        }
+    }
+    update() {
+        this.x -= this.speed;
+    }
 }
 class ForegroundCloud extends Cloud {
-    // ... (ForegroundCloud class remains the same)
+    constructor() {
+        super();
+        this.speed = (Math.random() * 1 + 1) * 2;
+        this.opacity = 0.9;
+    }
 }
-class Bat {
-    // ... (Bat class remains the same)
-}
-class EnemyBullet extends Bullet {
-    // ... (EnemyBullet class remains the same)
-}
+class Bat { constructor() { this.width = 40; this.height = 20; this.x = canvas.width; this.y = Math.random() * (canvas.height - this.height); this.speed = Math.random() * 4 + 4; this.frame = 0; this.lastFrameTime = 0; } draw(ctx) { ctx.fillStyle = 'black'; ctx.beginPath(); const wingY = this.frame === 0 ? this.y : this.y + 10; ctx.moveTo(this.x, wingY); ctx.lineTo(this.x + this.width / 2, this.y + this.height / 2); ctx.lineTo(this.x + this.width, wingY); ctx.closePath(); ctx.fill(); } update() { this.x -= this.speed; if (Date.now() - this.lastFrameTime > 100) { this.frame = 1 - this.frame; this.lastFrameTime = Date.now(); } } }
+class EnemyBullet extends Bullet { constructor(x, y) { super(x, y); this.speed = -8; this.drawFn = (ctx) => { ctx.fillStyle = '#fca5a5'; ctx.fillRect(0, 0, this.width/2, this.height/2); }; } }
 
 // --- Game Data Functions ---
 function loadGameData() {
-    // ... (Updated to handle new stats fields)
+    const savedData = localStorage.getItem('legendaryCombData_' + userId);
+    if (savedData) {
+        gameData = JSON.parse(savedData);
+        if (!gameData.shop.unlockedCombs) {
+            gameData.shop = {...defaultGameData.shop, ...gameData.shop};
+        }
+        if (!gameData.stats.bestScore) { // Ensure old save data gets the new property
+            gameData.stats.bestScore = { relax: 0, challenge: 0 };
+        }
+        ['relax', 'challenge'].forEach(mode => {
+            if(!gameData.stats.kills[mode].black) {
+                gameData.stats.kills[mode].black = 0;
+            }
+        });
+    } else {
+        gameData = JSON.parse(JSON.stringify(defaultGameData));
+    }
 }
 function saveGameData() {
-    // ... (saveGameData remains the same)
+    localStorage.setItem('legendaryCombData_' + userId, JSON.stringify(gameData));
 }
 
 // --- Game Functions ---
 let backgroundDrawer;
 function init() {
-    // ... (Updated to handle level-based init)
+    const uiHeight = document.getElementById('uiBar').offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - uiHeight;
+    
+    backgroundDrawer = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
+    if (backgroundDrawer.init) backgroundDrawer.init(canvas, ctx);
+
+    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false; isPaused = false;
+    player = new Player(); 
+    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
+    challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
+    lastBlackGhostSpawn = 0; blackGhostSpawnRate = Math.random() * 30000 + 60000;
+    updateUI();
+    togglePause(false); // Make sure pause screen is hidden
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    gameLoop(0);
 }
 function spawnEntities(timestamp) {
-    // ... (Updated to handle level objectives and boss)
+    if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
+    if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+    const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
+    if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
+    if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
+    if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
+    if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
+    if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
+        blackGhost = new BlackGhost();
+        lastBlackGhostSpawn = timestamp;
+        blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
+    }
 }
 function handleShooting(timestamp) {
-    // ... (handleShooting remains the same)
+    if (timestamp - lastShotTime > shootInterval) {
+        const bulletY = player.y + player.height / 2 - 2.5;
+        if (asmrActive) { bullets.push(new Bullet(player.x + player.width, bulletY, -3)); bullets.push(new Bullet(player.x + player.width, bulletY, 0)); bullets.push(new Bullet(player.x + player.width, bulletY, 3)); }
+        else { bullets.push(new Bullet(player.x + player.width, bulletY)); }
+        lastShotTime = timestamp;
+    }
 }
-function isColliding(rect1, rect2) { 
-    // ... (isColliding remains the same)
-}
+function isColliding(rect1, rect2) { const w1 = rect1.size || rect1.width, h1 = rect1.height || w1; const w2 = rect2.size || rect2.width, h2 = rect2.height || w2; return rect1.x < rect2.x + w2 && rect1.x + w1 > rect2.x && rect1.y < rect2.y + h2 && rect1.y + h1 > rect2.y; }
 function checkCollisions() {
-    // ... (Updated to check for boss collisions and level win conditions)
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
+            if (isColliding(bullets[i], enemies[j])) {
+                const enemy = enemies[j];
+                if (enemy instanceof RedEnemy) {
+                    enemy.health--;
+                    if (enemy.health <= 0) {
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
+                        collectibles.push(new Collectible('coin', enemy.x, enemy.y));
+                        enemies.splice(j, 1);
+                        gameData.stats.kills[gameMode].red++; saveGameData();
+                    }
+                } else {
+                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                    enemies.splice(j, 1);
+                    gameData.stats.kills[gameMode].normal++; saveGameData();
+                }
+                bullets.splice(i, 1); break;
+            }
+        }
+    }
+    const checkPlayerCollision = (object) => { if (isColliding(player, object)) { lives--; updateUI(); createExplosion(player.x + player.width/2, player.y + player.height/2, '#fBBF24'); if (lives <= 0) gameOver(); return true; } return false; }
+    for (let i = enemies.length - 1; i >= 0; i--) { if (checkPlayerCollision(enemies[i])) { enemies.splice(i, 1); break; } }
+    for (let i = enemyBullets.length - 1; i >= 0; i--) { if (checkPlayerCollision(enemyBullets[i])) { enemyBullets.splice(i, 1); break; } }
+    for (let i = collectibles.length - 1; i >= 0; i--) {
+        if(isColliding(player, collectibles[i])) {
+            const item = collectibles[i];
+            if (item.type === 'coin') { score++; gameData.stats.totalCoins++; saveGameData(); }
+            else if (item.type === 'heart') { if (lives < 3) lives++; }
+            else { collectedLetters.add(item.type); if (collectedLetters.size === 4) { asmrActive = true; asmrEndTime = Date.now() + 20000; } }
+            collectibles.splice(i, 1); updateUI();
+        }
+    }
+    if (blackGhost) {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            if (isColliding(bullets[i], blackGhost)) {
+                blackGhost.health--;
+                bullets.splice(i, 1);
+                if (blackGhost.health <= 0) {
+                    createExplosion(blackGhost.x + blackGhost.width / 2, blackGhost.y + blackGhost.height / 2, '#4a044e');
+                    for(let k=0; k<5; k++) { collectibles.push(new Collectible('coin', blackGhost.x + (Math.random() * blackGhost.width), blackGhost.y + (Math.random() * blackGhost.height))); }
+                    blackGhost = null;
+                    gameData.stats.kills[gameMode].black++;
+                    saveGameData();
+                }
+                break;
+            }
+        }
+        if (blackGhost && checkPlayerCollision(blackGhost)) {
+             // Player takes damage, black ghost remains
+        }
+    }
 }
-function checkLevelWinCondition() {
-    // ... (New function to check if level is won)
-}
-function levelWin() {
-    // ... (New function for winning a level)
-}
-function createExplosion(x, y, color) { 
-    // ... (createExplosion remains the same)
-}
+function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
 function gameOver() {
-    // ... (Updated to handle level failure)
+    isGameOver = true;
+    cancelAnimationFrame(gameLoopId);
+    
+    // Check for new best score
+    if (score > gameData.stats.bestScore[gameMode]) {
+        gameData.stats.bestScore[gameMode] = score;
+        saveGameData();
+    }
+    
+    showScreen('gameOverScreen');
+    finalScoreEl.textContent = score;
 }
 function gameLoop(timestamp) {
-    // ... (Updated game loop with pause logic and win checks)
-}
-
-// --- Menu Loop ---
-function startMenuLoop() {
-    stopMenuLoop(); // Ensure no multiple loops
-    menuBgCanvas.width = window.innerWidth;
-    menuBgCanvas.height = window.innerHeight;
-    menuClouds = [];
-    for(let i=0; i<5; i++) {
-         menuClouds.push(new Cloud());
-    }
-    menuLoop();
-}
-
-function stopMenuLoop() {
-    if (menuLoopId) {
-        cancelAnimationFrame(menuLoopId);
-        menuLoopId = null;
-    }
-}
-
-function menuLoop(timestamp) {
-    menuBgCtx.clearRect(0, 0, menuBgCanvas.width, menuBgCanvas.height);
-    const bgImg = gameImages.blueSky;
-    if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
-        menuBgCtx.drawImage(bgImg, 0, 0, menuBgCanvas.width, menuBgCanvas.height);
-    } else {
-        menuBgCtx.fillStyle = '#ADD8E6';
-        menuBgCtx.fillRect(0,0, menuBgCanvas.width, menuBgCanvas.height);
-    }
-
-    if (timestamp - lastMenuCloudSpawn > 7000) {
-        menuClouds.push(new Cloud());
-        lastMenuCloudSpawn = timestamp;
-    }
-
-    menuClouds.forEach(c => {
-        c.update();
-        c.draw(menuBgCtx);
-    });
-
-    menuClouds = menuClouds.filter(c => c.x + c.width > 0);
+    if (isGameOver) return;
     
-    menuLoopId = requestAnimationFrame(menuLoop);
+    if (!isPaused) {
+        if (window.innerWidth > window.innerHeight && isTouchDevice) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return; 
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        backgroundDrawer.draw(canvas, ctx);
+
+        if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
+        if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
+        spawnEntities(timestamp); handleShooting(timestamp);
+        
+        [clouds, particles, trailParticles, bats, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
+        if (player) player.update();
+        if (blackGhost) blackGhost.update();
+        foregroundClouds.forEach(c => c.update());
+        
+        // Draw order
+        const allObjects = [clouds, trailParticles, bats, enemies];
+        if (blackGhost) allObjects.push([blackGhost]); // Add as an array to be iterated
+        allObjects.push(player, collectibles, bullets, enemyBullets, particles);
+        
+        allObjects.forEach(arr => { 
+            if (!arr) return;
+            if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
+            else arr.draw(ctx); 
+        });
+
+        foregroundClouds.forEach(c => c.draw(ctx)); 
+        if (isTouchDevice) drawJoystick();
+        
+        // Filtering
+        bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
+        enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
+        particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
+        clouds = clouds.filter(c => c.x + c.width > 0);
+        foregroundClouds = foregroundClouds.filter(c => c.x + c.width > 0);
+        bats = bats.filter(b => b.x + b.width > 0);
+        
+        checkCollisions();
+    }
+    
+    gameLoopId = requestAnimationFrame(gameLoop);
 }
 
 // --- UI Management ---
 function updateUI() {
-    // ... (Updated to show level objectives)
+    scoreEl.textContent = score;
+    livesEl.innerHTML = ''; for(let i=0; i<lives; i++) livesEl.innerHTML += '💛';
+    if (asmrActive) {
+        asmrTimerContainerEl.classList.remove('hidden'); asmrLettersEl.classList.add('hidden');
+        const timeLeft = Math.ceil((asmrEndTime - Date.now()) / 1000);
+        asmrTimerEl.textContent = timeLeft > 0 ? timeLeft : 0;
+    } else {
+        asmrTimerContainerEl.classList.add('hidden'); asmrLettersEl.classList.remove('hidden');
+        letterA_El.style.opacity = collectedLetters.has('A') ? 1 : 0.3; letterS_El.style.opacity = collectedLetters.has('S') ? 1 : 0.3;
+        letterM_El.style.opacity = collectedLetters.has('M') ? 1 : 0.3; letterR_El.style.opacity = collectedLetters.has('R') ? 1 : 0.3;
+    }
 }
 function showScreen(screenId) {
-    // ... (Updated to handle new screens and menu loop)
+    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen, loadingScreen].forEach(s => s.classList.add('hidden'));
+    document.getElementById(screenId).classList.remove('hidden');
+
+    if (screenId === 'settingsScreen') {
+        renderAllShops();
+        document.body.style.touchAction = 'auto';
+    } else {
+        document.body.style.touchAction = 'none';
+    }
+
+    if (screenId === 'statsScreen') updateStatsScreen();
+    
+    if (screenId === 'mainMenu') {
+        const menuCtx = menuCombCanvas.getContext('2d');
+        menuCombCanvas.width = 192; menuCombCanvas.height = 192;
+        const selectedComb = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
+        selectedComb.draw(menuCtx, gameData.shop.selectedColor, 192, 192);
+        
+        try {
+            const user = window.Telegram.WebApp.initDataUnsafe.user;
+            greetingEl.textContent = `Привет, ${user.first_name}!`;
+        } catch (e) {
+            greetingEl.textContent = `Привет, Игрок!`;
+        }
+    }
 }
 function updateStatsScreen() {
-    // ... (Updated to show level times)
-}
-function populateLevelSelection() {
-    // ... (New function to create level buttons)
-}
-function showLevelBriefing(levelNum) {
-    // ... (New function to show level info)
+    const stats = gameData.stats;
+    totalCoinsStat.textContent = stats.totalCoins;
+    relaxNormalStat.textContent = stats.kills.relax.normal;
+    relaxRedStat.textContent = stats.kills.relax.red;
+    relaxBlackStat.textContent = stats.kills.relax.black;
+    challengeNormalStat.textContent = stats.kills.challenge.normal;
+    challengeRedStat.textContent = stats.kills.challenge.red;
+    challengeBlackStat.textContent = stats.kills.challenge.black;
+    relaxBestScoreStat.textContent = stats.bestScore.relax;
+    challengeBestScoreStat.textContent = stats.bestScore.challenge;
 }
 function renderAllShops() {
-    // ... (renderAllShops remains the same)
+    shopCoinBalance.textContent = gameData.stats.totalCoins;
+    renderShopCategory('combs', combShop, 'unlockedCombs', 'selectedComb', (ctx, item) => item.draw(ctx, gameData.shop.selectedColor, 60, 40));
+    renderShopCategory('bullets', bulletShop, 'unlockedBullets', 'selectedBullet', (ctx, item) => item.draw(ctx, 30, 20));
+    renderShopCategory('trails', trailShop, 'unlockedTrails', 'selectedTrail', (ctx, item) => { if (item.props) { ctx.fillStyle = item.props.color; ctx.beginPath(); ctx.arc(30, 20, 15, 0, Math.PI*2); ctx.fill(); }});
+    renderShopCategory('colors', combColorShop, 'unlockedColors', 'selectedColor', (ctx, item) => { ctx.fillStyle = item.id; ctx.fillRect(0,0,60,40); });
+    renderShopCategory('backgrounds', backgroundShop, 'unlockedBackgrounds', 'selectedBackground', (ctx, item) => { const tempCanvas = document.createElement('canvas'); tempCanvas.width=60; tempCanvas.height=40; const tempCtx=tempCanvas.getContext('2d'); if(item.init) item.init(tempCanvas, tempCtx); item.draw(tempCanvas, tempCtx); ctx.drawImage(tempCanvas,0,0,60,40); });
 }
 function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, drawFn) {
-    // ... (renderShopCategory remains the same)
+    container.innerHTML = '';
+    SHOP_ITEMS[categoryKey].forEach(item => {
+        const isUnlocked = gameData.shop[unlockedKey].includes(item.id);
+        const isSelected = gameData.shop[selectedKey] === item.id;
+        const div = document.createElement('div');
+        div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+        
+        let itemDisplay = `<canvas class="mx-auto w-full"></canvas>`;
+        let priceText = isUnlocked ? (isSelected ? 'Выбрано' : 'Выбрать') : `Монеты: ${item.cost}`;
+        if (!isUnlocked && item.starCost > 0) {
+            priceText += ` / Stars: ${item.starCost}`;
+        }
+        div.innerHTML = `${itemDisplay}<p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${priceText}</p>`;
+        
+        div.onclick = () => handleShopClick(categoryKey, unlockedKey, selectedKey, item);
+        container.appendChild(div);
+
+        const itemCanvas = div.querySelector('canvas');
+        if (itemCanvas) {
+            const itemCtx = itemCanvas.getContext('2d');
+            itemCanvas.width = 60; itemCanvas.height = 40;
+            itemCtx.clearRect(0, 0, 60, 40); // Clear canvas for shop items
+            drawFn(itemCtx, item);
+        }
+    });
 }
 function handleShopClick(categoryKey, unlockedKey, selectedKey, item) {
-    // ... (handleShopClick remains the same)
+    const isUnlocked = gameData.shop[unlockedKey].includes(item.id);
+    if (isUnlocked) {
+        gameData.shop[selectedKey] = item.id;
+        saveGameData();
+        renderAllShops();
+    } else {
+        showPurchaseModal(categoryKey, unlockedKey, selectedKey, item);
+    }
 }
 function showPurchaseModal(categoryKey, unlockedKey, selectedKey, item) {
-    // ... (showPurchaseModal remains the same)
+    purchaseItemName.textContent = item.name;
+    
+    buyWithCoinsBtn.textContent = `Купить за ${item.cost} монет`;
+    buyWithCoinsBtn.disabled = gameData.stats.totalCoins < item.cost;
+    buyWithCoinsBtn.onclick = () => {
+        gameData.stats.totalCoins -= item.cost;
+        gameData.shop[unlockedKey].push(item.id);
+        gameData.shop[selectedKey] = item.id;
+        saveGameData();
+        renderAllShops();
+        hidePurchaseModal();
+    };
+
+    if (item.starCost > 0) {
+        buyWithStarsBtn.textContent = `Купить за ${item.starCost} Stars`;
+        buyWithStarsBtn.classList.remove('hidden');
+        buyWithStarsBtn.onclick = () => {
+            purchaseWithStars(categoryKey, unlockedKey, selectedKey, item);
+        };
+    } else {
+        buyWithStarsBtn.classList.add('hidden');
+    }
+    
+    cancelPurchaseBtn.onclick = hidePurchaseModal;
+    purchaseModal.classList.remove('hidden');
 }
 function hidePurchaseModal() {
-    // ... (hidePurchaseModal remains the same)
+    purchaseModal.classList.add('hidden');
 }
 function purchaseWithStars(categoryKey, unlockedKey, selectedKey, item) {
-    // ... (purchaseWithStars remains the same)
+    try {
+        window.Telegram.WebApp.showConfirm(`Вы уверены, что хотите купить "${item.name}" за ${item.starCost} Telegram Stars?`, (confirmed) => {
+            if (confirmed) {
+                // ЭТО МЕСТО ДЛЯ НАСТОЯЩЕЙ ОПЛАТЫ
+                // 1. Ваш сервер должен сгенерировать ссылку для оплаты (invoice link)
+                // 2. Вы получаете эту ссылку и вызываете метод ниже:
+                /*
+                const invoiceLink = 'ССЫЛКА_ОТ_ВАШЕГО_СЕРВЕРА';
+                window.Telegram.WebApp.openInvoice(invoiceLink, (status) => {
+                    if (status === 'paid') {
+                        // ПЛАТЁЖ УСПЕШЕН
+                        gameData.shop[unlockedKey].push(item.id);
+                        gameData.shop[selectedKey] = item.id;
+                        saveGameData();
+                        renderAllShops();
+                        hidePurchaseModal();
+                    } else {
+                        // Платёж не удался или был отменён
+                        window.Telegram.WebApp.showAlert('Платёж не удался.');
+                    }
+                });
+                */
+
+                // СИМУЛЯЦИЯ УСПЕШНОЙ ПОКУПКИ (УДАЛИТЬ ДЛЯ РЕАЛЬНОГО ПРИЛОЖЕНИЯ)
+                console.log(`Симуляция покупки "${item.name}" за ${item.starCost} Stars`);
+                gameData.shop[unlockedKey].push(item.id);
+                gameData.shop[selectedKey] = item.id;
+                saveGameData();
+                renderAllShops();
+                hidePurchaseModal();
+            }
+        });
+    } catch (e) {
+        alert('Покупка через Telegram Stars доступна только внутри Telegram.');
+        hidePurchaseModal();
+    }
 }
 
 
 // --- Controls & Event Handlers ---
 function togglePause(forcePause) {
-    // ... (togglePause remains the same)
+    if (isGameOver) return;
+    isPaused = forcePause !== undefined ? forcePause : !isPaused;
+    if (isPaused) {
+        pauseScreen.classList.remove('hidden');
+        pauseButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 20.5V3.5L20.5 12L6.5 20.5Z"/></svg>`; // Play icon
+    } else {
+        pauseScreen.classList.add('hidden');
+        pauseButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3H9V21H6V3ZM15 3H18V21H15V3Z"/></svg>`; // Pause icon
+    }
 }
-function drawJoystick() { 
-    // ... (drawJoystick remains the same)
-}
+function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
 function checkOrientation() {
-    // ... (checkOrientation remains the same)
+    const orientationWarning = document.getElementById('orientationWarning');
+    if (window.innerWidth > window.innerHeight && isTouchDevice) {
+        orientationWarning.classList.remove('hidden');
+        orientationWarning.classList.add('flex');
+    } else {
+        orientationWarning.classList.add('hidden');
+        orientationWarning.classList.remove('flex');
+    }
 }
-// ... (All event listeners updated for new buttons and screens)
+playButton.addEventListener('click', () => showScreen('modeSelection'));
+statsButton.addEventListener('click', () => showScreen('statsScreen'));
+settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
+relaxModeButton.addEventListener('click', () => { gameMode = 'relax'; showScreen('gameContainer'); init(); });
+challengeModeButton.addEventListener('click', () => { gameMode = 'challenge'; showScreen('gameContainer'); init(); });
+restartButton.addEventListener('click', () => showScreen('modeSelection'));
+menuButton.addEventListener('click', () => showScreen('mainMenu'));
+document.querySelectorAll('.back-button').forEach(btn => {
+    btn.addEventListener('click', () => showScreen(btn.dataset.target));
+});
+pauseButton.addEventListener('click', () => togglePause());
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
+        togglePause(true);
+    }
+});
 
+window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; const touch = e.changedTouches[0]; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; joystick.dx = 0; joystick.dy = 0; }
+function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } if (dist > 10) { joystick.dx = dx / dist; joystick.dy = dy / dist; } else { joystick.dx = 0; joystick.dy = 0; } }
+function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; joystick.dx = 0; joystick.dy = 0; } }
+if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
+window.addEventListener('resize', () => {
+    checkOrientation();
+    if(gameContainer.offsetParent !== null) {
+       init(); 
+    }
+});
 
 // --- Initial Load ---
 window.onload = async () => {
-    // ... (onload updated to start menu loop)
+    try {
+        await preloadImages();
+    } catch (error) {
+        console.error("Не удалось загрузить игровые ресурсы:", error);
+        document.body.innerHTML = `<div class="w-full h-full flex items-center justify-center text-center p-4">Ошибка загрузки ресурсов.<br>Пожалуйста, обновите страницу.</div>`;
+        return;
+    }
+
+    try { 
+        window.Telegram.WebApp.ready(); 
+        window.Telegram.WebApp.disableVerticalSwipes();
+        userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+    } catch(e) { 
+        console.log('Not in Telegram or user ID not available.');
+        userId = 'default_player';
+    }
+    
+    loadGameData();
+    checkOrientation();
+    showScreen('mainMenu');
 };
 </script>
 </body>
