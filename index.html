@@ -83,9 +83,12 @@
     </div>
     
     <!-- Game Screen -->
-    <div id="gameContainer" class="hidden w-full h-full flex flex-col">
+    <div id="gameContainer" class="hidden w-full h-full flex flex-col relative">
         <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl">
-            <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
+            <div class="flex items-center">
+                <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
+                <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
+            </div>
             <div id="asmrContainer" class="flex items-center gap-2">
                 <div id="asmrTimerContainer" class="hidden font-bold text-cyan-400">ASMR: <span id="asmrTimer">20</span></div>
                 <div id="asmrLetters"><span id="letterA" class="opacity-30">A</span><span id="letterS" class="opacity-30">S</span><span id="letterM" class="opacity-30">M</span><span id="letterR" class="opacity-30">R</span></div>
@@ -93,6 +96,9 @@
             <div>МОНЕТЫ: <span id="score">0</span></div>
         </div>
         <canvas id="gameCanvas"></canvas>
+        <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
+            <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
+        </div>
     </div>
     
     <!-- Game Over Screen -->
@@ -112,9 +118,14 @@
             <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Отдыха:</h3>
             <p>Убито белых призраков: <span id="relaxNormalStat" class="text-gray-300">0</span></p>
             <p>Убито красных призраков: <span id="relaxRedStat" class="text-red-400">0</span></p>
+            <p>Убито чёрных призраков: <span id="relaxBlackStat" class="text-purple-400">0</span></p>
             <h3 class="text-xl mt-4 mb-2 text-cyan-400">Режим Вызова:</h3>
             <p>Убито белых призраков: <span id="challengeNormalStat" class="text-gray-300">0</span></p>
             <p>Убито красных призраков: <span id="challengeRedStat" class="text-red-400">0</span></p>
+            <p>Убито чёрных призраков: <span id="challengeBlackStat" class="text-purple-400">0</span></p>
+            <h3 class="text-xl mt-4 mb-2 text-yellow-400">Лучшие результаты:</h3>
+            <p>Режим Отдыха: <span id="relaxBestScoreStat" class="text-green-400">0</span></p>
+            <p>Режим Вызова: <span id="challengeBestScoreStat" class="text-green-400">0</span></p>
         </div>
         <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
     </div>
@@ -199,12 +210,18 @@ const asmrLettersEl = document.getElementById('asmrLetters');
 const asmrTimerContainerEl = document.getElementById('asmrTimerContainer');
 const asmrTimerEl = document.getElementById('asmrTimer');
 const greetingEl = document.getElementById('greeting');
+const pauseButton = document.getElementById('pauseButton');
+const pauseScreen = document.getElementById('pauseScreen');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
 const relaxRedStat = document.getElementById('relaxRedStat');
 const challengeNormalStat = document.getElementById('challengeNormalStat');
 const challengeRedStat = document.getElementById('challengeRedStat');
+const relaxBestScoreStat = document.getElementById('relaxBestScoreStat');
+const challengeBestScoreStat = document.getElementById('challengeBestScoreStat');
+const relaxBlackStat = document.getElementById('relaxBlackStat');
+const challengeBlackStat = document.getElementById('challengeBlackStat');
 // Shop Elements
 const shopCoinBalance = document.getElementById('shopCoinBalance');
 const combColorShop = document.getElementById('combColorShop');
@@ -221,10 +238,11 @@ const cancelPurchaseBtn = document.getElementById('cancelPurchaseBtn');
 let userId = 'default_player';
 let gameMode = 'relax';
 let lives, score, collectedLetters, asmrActive, asmrEndTime;
-let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats;
+let player, bullets, enemies, enemyBullets, collectibles, particles, clouds, foregroundClouds, trailParticles, bats, blackGhost;
 let gameLoopId;
 let keys = {};
 let isGameOver = false;
+let isPaused = false;
 
 // Timers & Intervals
 let shootInterval = 500; let lastShotTime = 0;
@@ -234,6 +252,7 @@ let letterSpawnRate = 15000; let lastLetterSpawn = 0;
 let heartSpawnRate = 80000; let lastHeartSpawn = 0;
 let cloudSpawnRate = 5000; let lastCloudSpawn = 0;
 let batSpawnRate = 10000; let lastBatSpawn = 0;
+let blackGhostSpawnRate = 75000; let lastBlackGhostSpawn = 0;
 
 // Challenge Mode
 let challengeTimer = 0; let speedMultiplier = 1.0; let challengeMinute = 0;
@@ -245,7 +264,11 @@ const isTouchDevice = 'ontouchstart' in window;
 // Persistent Data
 let gameData = {};
 const defaultGameData = {
-    stats: { totalCoins: 0, kills: { relax: { normal: 0, red: 0 }, challenge: { normal: 0, red: 0 } } },
+    stats: { 
+        totalCoins: 0, 
+        kills: { relax: { normal: 0, red: 0, black: 0 }, challenge: { normal: 0, red: 0, black: 0 } },
+        bestScore: { relax: 0, challenge: 0 }
+    },
     shop: { 
         unlockedColors: ['#fBBF24'], selectedColor: '#fBBF24',
         unlockedCombs: ['classic'], selectedComb: 'classic',
@@ -264,7 +287,9 @@ const imageUrls = {
     cloudSmall: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/cloud_small.png',
     whiteGoast: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/white_goast.png',
     redGoast: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/red_goast.png',
-    classicComb: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/brush.png'
+    classicComb: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/brush.png',
+    blackGhost: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/black_ghost.png',
+    superBrush: 'https://raw.githubusercontent.com/Poklontsevv/legerndary_yellow_brush/main/brush2.png'
 };
 
 function preloadImages() {
@@ -376,22 +401,49 @@ const SHOP_ITEMS = {
             name: 'Классика', 
             cost: 0, 
             starCost: 0, 
-            draw: (ctx, color, width, height) => {
+            draw: (ctx, color, containerWidth, containerHeight) => {
                 const img = gameImages.classicComb;
-                if (img) {
-                    ctx.drawImage(img, 0, 0, width, height);
-                    if (color !== '#fBBF24') { // Apply tint if not default color
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = containerWidth;
+                    let drawHeight = drawWidth / aspectRatio;
+                    if (drawHeight > containerHeight) {
+                        drawHeight = containerHeight;
+                        drawWidth = drawHeight * aspectRatio;
+                    }
+                    const x = (containerWidth - drawWidth) / 2;
+                    const y = (containerHeight - drawHeight) / 2;
+                    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+                    if (color !== '#fBBF24') { // Apply tint
                         ctx.globalCompositeOperation = 'source-atop';
                         ctx.fillStyle = color;
                         ctx.globalAlpha = 0.7;
-                        ctx.fillRect(0, 0, width, height);
+                        ctx.fillRect(x, y, drawWidth, drawHeight);
                         ctx.globalCompositeOperation = 'source-over';
                         ctx.globalAlpha = 1.0;
                     }
-                } else { // Fallback if image fails
-                    ctx.fillStyle = color;
-                    ctx.fillRect(0, 0, width, height);
-                }
+                } else { ctx.fillStyle = color; ctx.fillRect(0, 0, containerWidth, containerHeight); }
+            }
+        },
+        { 
+            id: 'superBrush', 
+            name: 'Супер-браш', 
+            cost: 0, 
+            starCost: 10, 
+            draw: (ctx, color, containerWidth, containerHeight) => {
+                const img = gameImages.superBrush;
+                if (img && img.complete && img.naturalWidth > 0) {
+                    const aspectRatio = img.width / img.height;
+                    let drawWidth = containerWidth;
+                    let drawHeight = drawWidth / aspectRatio;
+                    if (drawHeight > containerHeight) {
+                        drawHeight = containerHeight;
+                        drawWidth = drawHeight * aspectRatio;
+                    }
+                    const x = (containerWidth - drawWidth) / 2;
+                    const y = (containerHeight - drawHeight) / 2;
+                    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+                } else { ctx.fillStyle = '#ff00ff'; ctx.fillRect(0, 0, containerWidth, containerHeight); }
             }
         },
         { id: 'pumpkin', name: 'Тыква', cost: 0, starCost: 5, draw: DRAW_FUNCTIONS.drawPumpkin },
@@ -421,7 +473,7 @@ const SHOP_ITEMS = {
     backgrounds: [
         { id: 'default', name: 'Небо', cost: 0, starCost: 0, init: ()=>{}, draw: (c,ct) => { 
             const img = gameImages.blueSky;
-            if (img) {
+            if (img && img.complete && img.naturalWidth > 0) {
                 ct.drawImage(img, 0, 0, c.width, c.height);
             } else {
                 ct.fillStyle = '#ADD8E6'; 
@@ -483,20 +535,33 @@ class Player {
         this.lastTrailTime = 0;
         
         const img = gameImages.classicComb;
-        const aspectRatio = img.height / img.width;
-        this.width = 60; // Base width
-        this.height = this.width * aspectRatio;
+        if (img && img.complete && img.naturalWidth > 0) {
+            const aspectRatio = img.height / img.width;
+            this.width = 60; // Base width
+            this.height = this.width * aspectRatio;
+        } else {
+            this.width = 60;
+            this.height = 60; // Fallback size
+        }
 
         this.x = this.width / 2;
         this.y = canvas.height / 2;
     }
     draw(ctx) {
-        const drawFn = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb).draw;
+        const item = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
         const color = gameData.shop.selectedColor;
+        
+        let width = this.width;
+        let height = this.height;
+        const img = gameImages[item.id];
+        if (img && img.complete && img.naturalWidth > 0) {
+             const aspectRatio = img.height / img.width;
+             height = width * aspectRatio;
+        }
 
         ctx.save();
         ctx.translate(this.x, this.y);
-        drawFn(ctx, color, this.width, this.height);
+        item.draw(ctx, color, width, height);
         ctx.restore();
     }
     update() {
@@ -566,7 +631,11 @@ class Enemy {
     constructor() {
         this.width = 50;
         const img = gameImages.whiteGoast;
-        this.height = this.width * (img.height / img.width);
+        if(img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 50; // Fallback
+        }
         this.x = canvas.width;
         this.y = Math.random() * (canvas.height - this.height);
         this.speed = Math.random() * 2 + 2;
@@ -575,7 +644,10 @@ class Enemy {
         this.shootCooldown = Math.random() * 2000 + 1500;
     }
     draw(ctx) {
-        ctx.drawImage(gameImages.whiteGoast, this.x, this.y, this.width, this.height);
+        const img = gameImages.whiteGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
     }
     update() {
         this.x -= this.speed * speedMultiplier;
@@ -590,15 +662,70 @@ class RedEnemy extends Enemy {
         super();
         this.health = 2;
         const img = gameImages.redGoast;
-        this.height = this.width * (img.height / img.width);
+        if(img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 50; // Fallback
+        }
         this.speed = Math.random() * 1 + 1.5;
         this.shoots = true;
     }
     draw(ctx) {
-        ctx.drawImage(gameImages.redGoast, this.x, this.y, this.width, this.height);
+        const img = gameImages.redGoast;
+        if(img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
     }
 }
-class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { ctx.drawImage(gameImages.coin, this.x, this.y, this.size, this.size); } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
+class BlackGhost extends Enemy {
+    constructor() {
+        super();
+        this.width = 70; // Bigger
+        const img = gameImages.blackGhost;
+        if (img && img.complete && img.naturalWidth > 0) {
+            this.height = this.width * (img.height / img.width);
+        } else {
+            this.height = 70; // Fallback
+        }
+        this.x = canvas.width - this.width;
+        this.y = Math.random() * (canvas.height - this.height);
+        this.speed = 2;
+        this.health = 4;
+        this.shoots = true;
+        this.shootCooldown = 1500;
+        this.dx = -1; // Patrolling direction
+    }
+    draw(ctx) {
+        const img = gameImages.blackGhost;
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, this.x, this.y, this.width, this.height);
+        }
+    }
+    update() {
+        // Vertical movement: follow player with a delay
+        if (player) {
+            this.y += (player.y - this.y) * 0.04;
+        }
+
+        // Horizontal movement: patrol the right two-thirds of the screen
+        this.x += this.dx * this.speed;
+        if (this.x < canvas.width / 3) {
+            this.x = canvas.width / 3;
+            this.dx = 1; // Move right
+        }
+        if (this.x > canvas.width - this.width) {
+            this.x = canvas.width - this.width;
+            this.dx = -1; // Move left
+        }
+        
+        // Shooting
+        if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) {
+            enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2));
+            this.lastShot = Date.now();
+        }
+    }
+}
+class Collectible { constructor(type, x, y) { this.type = type; this.size = 30; this.x = x !== undefined ? x : canvas.width; this.y = y !== undefined ? y : Math.random() * (canvas.height - this.size); this.speed = 3; this.text = ''; if (type === 'heart') this.text = '❤'; else if (type !== 'coin') this.text = this.type; } draw(ctx) { if (this.type === 'coin') { const img = gameImages.coin; if (img && img.complete && img.naturalWidth > 0) { ctx.drawImage(img, this.x, this.y, this.size, this.size); } } else { ctx.fillStyle = this.type === 'heart' ? 'red' : 'cyan'; ctx.font = `${this.size}px 'Press Start 2P'`; ctx.fillText(this.text, this.x, this.y + this.size); } } update() { this.x -= this.speed; } }
 class Particle { constructor(x, y, color) { this.x = x; this.y = y; this.size = Math.random() * 5 + 2; this.speedX = Math.random() * 6 - 3; this.speedY = Math.random() * 6 - 3; this.color = color || `rgba(255, 255, 255, ${Math.random()})`; this.life = 100; } draw(ctx) { ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } update() { this.x += this.speedX; this.y += this.speedY; this.life -= 2; } }
 class Cloud {
     constructor() {
@@ -614,7 +741,7 @@ class Cloud {
         if (gameData.shop.selectedBackground === 'sweets') {
             DRAW_FUNCTIONS.drawDonut(ctx, this.x, this.y, this.width);
         } else if (gameData.shop.selectedBackground === 'default' || gameData.shop.selectedBackground === 'mountains') {
-             if (this.image) {
+             if (this.image && this.image.complete && this.image.naturalWidth > 0) {
                 ctx.globalAlpha = this.opacity;
                 const aspectRatio = this.image.height / this.image.width;
                 ctx.drawImage(this.image, this.x, this.y, this.width, this.width * aspectRatio);
@@ -652,6 +779,14 @@ function loadGameData() {
         if (!gameData.shop.unlockedCombs) {
             gameData.shop = {...defaultGameData.shop, ...gameData.shop};
         }
+        if (!gameData.stats.bestScore) { // Ensure old save data gets the new property
+            gameData.stats.bestScore = { relax: 0, challenge: 0 };
+        }
+        ['relax', 'challenge'].forEach(mode => {
+            if(!gameData.stats.kills[mode].black) {
+                gameData.stats.kills[mode].black = 0;
+            }
+        });
     } else {
         gameData = JSON.parse(JSON.stringify(defaultGameData));
     }
@@ -670,11 +805,13 @@ function init() {
     backgroundDrawer = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
     if (backgroundDrawer.init) backgroundDrawer.init(canvas, ctx);
 
-    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false;
+    lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0; isGameOver = false; isPaused = false;
     player = new Player(); 
-    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = [];
+    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
+    lastBlackGhostSpawn = 0; blackGhostSpawnRate = Math.random() * 30000 + 60000;
     updateUI();
+    togglePause(false); // Make sure pause screen is hidden
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     gameLoop(0);
 }
@@ -686,6 +823,11 @@ function spawnEntities(timestamp) {
     if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
     if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
     if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
+    if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
+        blackGhost = new BlackGhost();
+        lastBlackGhostSpawn = timestamp;
+        blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
+    }
 }
 function handleShooting(timestamp) {
     if (timestamp - lastShotTime > shootInterval) {
@@ -730,43 +872,86 @@ function checkCollisions() {
             collectibles.splice(i, 1); updateUI();
         }
     }
+    if (blackGhost) {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            if (isColliding(bullets[i], blackGhost)) {
+                blackGhost.health--;
+                bullets.splice(i, 1);
+                if (blackGhost.health <= 0) {
+                    createExplosion(blackGhost.x + blackGhost.width / 2, blackGhost.y + blackGhost.height / 2, '#4a044e');
+                    for(let k=0; k<5; k++) { collectibles.push(new Collectible('coin', blackGhost.x + (Math.random() * blackGhost.width), blackGhost.y + (Math.random() * blackGhost.height))); }
+                    blackGhost = null;
+                    gameData.stats.kills[gameMode].black++;
+                    saveGameData();
+                }
+                break;
+            }
+        }
+        if (blackGhost && checkPlayerCollision(blackGhost)) {
+             // Player takes damage, black ghost remains
+        }
+    }
 }
 function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
-function gameOver() { isGameOver = true; cancelAnimationFrame(gameLoopId); showScreen('gameOverScreen'); finalScoreEl.textContent = score; }
+function gameOver() {
+    isGameOver = true;
+    cancelAnimationFrame(gameLoopId);
+    
+    // Check for new best score
+    if (score > gameData.stats.bestScore[gameMode]) {
+        gameData.stats.bestScore[gameMode] = score;
+        saveGameData();
+    }
+    
+    showScreen('gameOverScreen');
+    finalScoreEl.textContent = score;
+}
 function gameLoop(timestamp) {
     if (isGameOver) return;
-    if (window.innerWidth > window.innerHeight && isTouchDevice) {
-        gameLoopId = requestAnimationFrame(gameLoop);
-        return; 
+    
+    if (!isPaused) {
+        if (window.innerWidth > window.innerHeight && isTouchDevice) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return; 
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        backgroundDrawer.draw(canvas, ctx);
+
+        if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
+        if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
+        spawnEntities(timestamp); handleShooting(timestamp);
+        
+        [clouds, particles, trailParticles, bats, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
+        if (player) player.update();
+        if (blackGhost) blackGhost.update();
+        foregroundClouds.forEach(c => c.update());
+        
+        // Draw order
+        const allObjects = [clouds, trailParticles, bats, enemies];
+        if (blackGhost) allObjects.push([blackGhost]); // Add as an array to be iterated
+        allObjects.push(player, collectibles, bullets, enemyBullets, particles);
+        
+        allObjects.forEach(arr => { 
+            if (!arr) return;
+            if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
+            else arr.draw(ctx); 
+        });
+
+        foregroundClouds.forEach(c => c.draw(ctx)); 
+        if (isTouchDevice) drawJoystick();
+        
+        // Filtering
+        bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
+        enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
+        particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
+        clouds = clouds.filter(c => c.x + c.width > 0);
+        foregroundClouds = foregroundClouds.filter(c => c.x + c.width > 0);
+        bats = bats.filter(b => b.x + b.width > 0);
+        
+        checkCollisions();
     }
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    backgroundDrawer.draw(canvas, ctx);
-
-    if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
-    if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
-    spawnEntities(timestamp); handleShooting(timestamp);
     
-    [clouds, particles, trailParticles, bats, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
-    player.update(); foregroundClouds.forEach(c => c.update());
-    
-    // Draw order
-    [clouds, trailParticles, bats, player, enemies, collectibles, bullets, enemyBullets, particles].forEach(arr => { 
-        if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
-        else arr.draw(ctx); 
-    });
-    foregroundClouds.forEach(c => c.draw(ctx)); 
-    if (isTouchDevice) drawJoystick();
-    
-    // Filtering
-    bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
-    enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
-    particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
-    clouds = clouds.filter(c => c.x + c.size * 2 > 0);
-    foregroundClouds = foregroundClouds.filter(c => c.x + c.size * 2 > 0);
-    bats = bats.filter(b => b.x + b.width > 0);
-    
-    checkCollisions(); 
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
@@ -816,8 +1001,12 @@ function updateStatsScreen() {
     totalCoinsStat.textContent = stats.totalCoins;
     relaxNormalStat.textContent = stats.kills.relax.normal;
     relaxRedStat.textContent = stats.kills.relax.red;
+    relaxBlackStat.textContent = stats.kills.relax.black;
     challengeNormalStat.textContent = stats.kills.challenge.normal;
     challengeRedStat.textContent = stats.kills.challenge.red;
+    challengeBlackStat.textContent = stats.kills.challenge.black;
+    relaxBestScoreStat.textContent = stats.bestScore.relax;
+    challengeBestScoreStat.textContent = stats.bestScore.challenge;
 }
 function renderAllShops() {
     shopCoinBalance.textContent = gameData.stats.totalCoins;
@@ -849,6 +1038,7 @@ function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, dr
         if (itemCanvas) {
             const itemCtx = itemCanvas.getContext('2d');
             itemCanvas.width = 60; itemCanvas.height = 40;
+            itemCtx.clearRect(0, 0, 60, 40); // Clear canvas for shop items
             drawFn(itemCtx, item);
         }
     });
@@ -934,6 +1124,17 @@ function purchaseWithStars(categoryKey, unlockedKey, selectedKey, item) {
 
 
 // --- Controls & Event Handlers ---
+function togglePause(forcePause) {
+    if (isGameOver) return;
+    isPaused = forcePause !== undefined ? forcePause : !isPaused;
+    if (isPaused) {
+        pauseScreen.classList.remove('hidden');
+        pauseButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6.5 20.5V3.5L20.5 12L6.5 20.5Z"/></svg>`; // Play icon
+    } else {
+        pauseScreen.classList.add('hidden');
+        pauseButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 3H9V21H6V3ZM15 3H18V21H15V3Z"/></svg>`; // Pause icon
+    }
+}
 function drawJoystick() { if (joystick.active) { ctx.beginPath(); ctx.arc(joystick.baseX, joystick.baseY, joystick.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fill(); ctx.beginPath(); ctx.arc(joystick.stickX, joystick.stickY, joystick.stickRadius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fill(); } }
 function checkOrientation() {
     const orientationWarning = document.getElementById('orientationWarning');
@@ -955,6 +1156,13 @@ menuButton.addEventListener('click', () => showScreen('mainMenu'));
 document.querySelectorAll('.back-button').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
+pauseButton.addEventListener('click', () => togglePause());
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
+        togglePause(true);
+    }
+});
+
 window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
 function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; const touch = e.changedTouches[0]; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; }
 function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } }
