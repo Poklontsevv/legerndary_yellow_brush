@@ -58,6 +58,7 @@
         
         .level-button { border: 4px solid #4b5563; background-color: #334155; }
         .level-button.completed { border-color: #34d399; }
+        .level-button-unlocked { cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
@@ -86,6 +87,7 @@
         <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ РЕЖИМ</h2>
         <button id="relaxModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ОТДЫХА</button>
         <button id="challengeModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">РЕЖИМ ВЫЗОВА</button>
+        <button id="adventureModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">ПРИКЛЮЧЕНИЕ</button>
         <button data-target="mainMenu" class="back-button pixel-button text-xl md:text-2xl px-8 py-4 w-64">НАЗАД</button>
     </div>
     
@@ -94,7 +96,10 @@
         <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative">
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
-                <div>ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
+                <div id="livesContainer">ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
+                <div id="adventureProgressContainer" class="hidden">
+                    ПРОГРЕСС: <span id="adventureProgress">0</span> / <span id="adventureGoal">20</span>
+                </div>
             </div>
             <div id="asmrContainer" class="flex items-center gap-2">
                 <div id="asmrTimerContainer" class="hidden font-bold text-cyan-400">ASMR: <span id="asmrTimer">20</span></div>
@@ -113,6 +118,30 @@
         </div>
     </div>
     
+    <!-- Adventure Mode Level Selection -->
+    <div id="adventureSelection" class="hidden text-center p-4 relative z-10">
+        <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ УРОВЕНЬ</h2>
+        <div class="flex flex-col items-center gap-4">
+            <button id="level1Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64 level-button-unlocked">1</button>
+            <button id="level2Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>2</button>
+            <button id="level3Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>3</button>
+        </div>
+        <button data-target="modeSelection" class="back-button pixel-button text-xl mt-8 px-8 py-4 w-64">НАЗАД</button>
+    </div>
+
+    <!-- Adventure Level Description Modal -->
+    <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg w-full max-w-sm">
+            <h3 class="text-2xl mb-4 font-bold text-yellow-400">ИСТОРИЯ 1.</h3>
+            <p class="mb-6 text-sm">В добром мире ASMRland начали появляться ТРЕВОЖИНКИ. И легендарная жёлтая расчёска вылетела на защиту добра и спокойствия.</p>
+            <p class="mb-8 text-sm">Задачи уровня: поразить 20 белых привидений.</p>
+            <div class="flex flex-col gap-4">
+                <button id="startLevel1Button" class="pixel-button text-xl px-8 py-4">НАЧАТЬ</button>
+                <button id="backFromModalButton" class="pixel-button text-xl px-8 py-4">НАЗАД</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Game Over Screen -->
     <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10">
          <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
@@ -120,6 +149,17 @@
          <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
          <button id="restartButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6">НАЧАТЬ ЗАНОВО</button>
          <button id="menuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
+    </div>
+
+    <!-- Win Screen -->
+    <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
+        <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПОБЕДА</h2>
+        <div class="text-5xl mb-12">
+            <span class="text-yellow-400">⭐</span>
+            <span class="text-yellow-400">⭐</span>
+            <span class="text-yellow-400">⭐</span>
+        </div>
+        <button id="winToMenuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
     </div>
 
     <!-- Statistics Screen -->
@@ -206,6 +246,11 @@ const statsButton = document.getElementById('statsButton');
 const settingsButton = document.getElementById('settingsButton');
 const relaxModeButton = document.getElementById('relaxModeButton');
 const challengeModeButton = document.getElementById('challengeModeButton');
+const adventureModeButton = document.getElementById('adventureModeButton');
+const adventureSelection = document.getElementById('adventureSelection');
+const level1Button = document.getElementById('level1Button');
+const level2Button = document.getElementById('level2Button');
+const level3Button = document.getElementById('level3Button');
 const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
@@ -226,9 +271,17 @@ const asmrTimerEl = document.getElementById('asmrTimer');
 const greetingEl = document.getElementById('greeting');
 const pauseButton = document.getElementById('pauseButton');
 const pauseScreen = document.getElementById('pauseScreen');
+const livesContainer = document.getElementById('livesContainer');
+const adventureProgressContainer = document.getElementById('adventureProgressContainer');
+const adventureProgressEl = document.getElementById('adventureProgress');
 // NEW: Pause screen buttons
 const resumeButton = document.getElementById('resumeButton');
 const pauseToMenuButton = document.getElementById('pauseToMenuButton');
+const adventureModal = document.getElementById('adventureModal');
+const startLevel1Button = document.getElementById('startLevel1Button');
+const backFromModalButton = document.getElementById('backFromModalButton');
+const winScreen = document.getElementById('winScreen');
+const winToMenuButton = document.getElementById('winToMenuButton');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
@@ -262,6 +315,9 @@ let isGameOver = false;
 let isPaused = false;
 let menuClouds = [];
 let lastMenuCloudSpawn = 0;
+// Adventure Mode
+let enemiesKilled = 0;
+const ADVENTURE_GOAL = 20;
 
 
 // Timers & Intervals
@@ -854,23 +910,33 @@ function init() {
     bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
     lastBlackGhostSpawn = 0; blackGhostSpawnRate = Math.random() * 30000 + 60000;
+    enemiesKilled = 0;
+
     updateUI();
     togglePause(false); // Make sure pause screen is hidden
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     gameLoop(0);
 }
 function spawnEntities(timestamp) {
-    if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
-    if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
-    const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
-    if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
-    if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
-    if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
-    if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
-    if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
-        blackGhost = new BlackGhost();
-        lastBlackGhostSpawn = timestamp;
-        blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
+    if (gameMode === 'adventure') {
+        if (enemiesKilled < ADVENTURE_GOAL && timestamp - lastEnemySpawn > enemySpawnRate) {
+            enemies.push(new Enemy());
+            lastEnemySpawn = timestamp;
+        }
+    } else {
+        // Regular mode enemy spawning
+        if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
+        if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+        const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
+        if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
+        if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
+        if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
+        if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
+        if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
+            blackGhost = new BlackGhost();
+            lastBlackGhostSpawn = timestamp;
+            blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
+        }
     }
 }
 function handleShooting(timestamp) {
@@ -887,20 +953,32 @@ function checkCollisions() {
         for (let j = enemies.length - 1; j >= 0; j--) {
             if (isColliding(bullets[i], enemies[j])) {
                 const enemy = enemies[j];
-                if (enemy instanceof RedEnemy) {
-                    enemy.health--;
-                    if (enemy.health <= 0) {
-                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
-                        collectibles.push(new Collectible('coin', enemy.x, enemy.y));
-                        enemies.splice(j, 1);
-                        gameData.stats.kills[gameMode].red++; saveGameData();
-                    }
-                } else {
+                // Adventure mode only has white ghosts, so simplify
+                if (gameMode === 'adventure') {
+                    enemiesKilled++;
                     createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
                     enemies.splice(j, 1);
-                    gameData.stats.kills[gameMode].normal++; saveGameData();
+                    updateUI(); // Update counter
+                    if (enemiesKilled >= ADVENTURE_GOAL) {
+                        handleVictory();
+                    }
+                } else {
+                    if (enemy instanceof RedEnemy) {
+                        enemy.health--;
+                        if (enemy.health <= 0) {
+                            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
+                            collectibles.push(new Collectible('coin', enemy.x, enemy.y));
+                            enemies.splice(j, 1);
+                            gameData.stats.kills[gameMode].red++; saveGameData();
+                        }
+                    } else {
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        enemies.splice(j, 1);
+                        gameData.stats.kills[gameMode].normal++; saveGameData();
+                    }
                 }
-                bullets.splice(i, 1); break;
+                bullets.splice(i, 1);
+                break;
             }
         }
     }
@@ -949,6 +1027,12 @@ function gameOver() {
     
     showScreen('gameOverScreen');
     finalScoreEl.textContent = score;
+}
+function handleVictory() {
+    isGameOver = true;
+    cancelAnimationFrame(gameLoopId);
+    showScreen('winScreen');
+    // TODO: unlock next level
 }
 function gameLoop(timestamp) {
     if (isGameOver) return;
@@ -1040,23 +1124,33 @@ function menuLoop(timestamp) {
 
 // --- UI Management ---
 function updateUI() {
-    scoreEl.textContent = score;
-    livesEl.innerHTML = ''; for(let i=0; i<lives; i++) livesEl.innerHTML += '💛';
-    if (asmrActive) {
-        asmrTimerContainerEl.classList.remove('hidden'); asmrLettersEl.classList.add('hidden');
-        const timeLeft = Math.ceil((asmrEndTime - Date.now()) / 1000);
-        asmrTimerEl.textContent = timeLeft > 0 ? timeLeft : 0;
+    if (gameMode === 'adventure') {
+        livesContainer.classList.add('hidden');
+        scoreEl.textContent = '---';
+        asmrContainer.classList.add('hidden');
+        adventureProgressContainer.classList.remove('hidden');
+        adventureProgressEl.textContent = enemiesKilled;
     } else {
-        asmrTimerContainerEl.classList.add('hidden'); asmrLettersEl.classList.remove('hidden');
-        letterA_El.style.opacity = collectedLetters.has('A') ? 1 : 0.3; letterS_El.style.opacity = collectedLetters.has('S') ? 1 : 0.3;
-        letterM_El.style.opacity = collectedLetters.has('M') ? 1 : 0.3; letterR_El.style.opacity = collectedLetters.has('R') ? 1 : 0.3;
+        livesContainer.classList.remove('hidden');
+        adventureProgressContainer.classList.add('hidden');
+        scoreEl.textContent = score;
+        livesEl.innerHTML = ''; for(let i=0; i<lives; i++) livesEl.innerHTML += '💛';
+        if (asmrActive) {
+            asmrTimerContainerEl.classList.remove('hidden'); asmrLettersEl.classList.add('hidden');
+            const timeLeft = Math.ceil((asmrEndTime - Date.now()) / 1000);
+            asmrTimerEl.textContent = timeLeft > 0 ? timeLeft : 0;
+        } else {
+            asmrTimerContainerEl.classList.add('hidden'); asmrLettersEl.classList.remove('hidden');
+            letterA_El.style.opacity = collectedLetters.has('A') ? 1 : 0.3; letterS_El.style.opacity = collectedLetters.has('S') ? 1 : 0.3;
+            letterM_El.style.opacity = collectedLetters.has('M') ? 1 : 0.3; letterR_El.style.opacity = collectedLetters.has('R') ? 1 : 0.3;
+        }
     }
 }
 function showScreen(screenId) {
-    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen, loadingScreen].forEach(s => s.classList.add('hidden'));
+    [mainMenu, modeSelection, gameContainer, gameOverScreen, statsScreen, settingsScreen, loadingScreen, adventureSelection, adventureModal, winScreen].forEach(s => s.classList.add('hidden'));
     document.getElementById(screenId).classList.remove('hidden');
 
-    if (screenId.includes('mainMenu') || screenId.includes('modeSelection') || screenId.includes('statsScreen') || screenId.includes('settingsScreen')) {
+    if (screenId.includes('mainMenu') || screenId.includes('modeSelection') || screenId.includes('statsScreen') || screenId.includes('settingsScreen') || screenId.includes('adventureSelection') || screenId.includes('adventureModal')) {
         startMenuLoop();
         menuBgCanvas.classList.remove('hidden');
     } else {
@@ -1236,6 +1330,7 @@ statsButton.addEventListener('click', () => showScreen('statsScreen'));
 settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
 relaxModeButton.addEventListener('click', () => { gameMode = 'relax'; showScreen('gameContainer'); init(); });
 challengeModeButton.addEventListener('click', () => { gameMode = 'challenge'; showScreen('gameContainer'); init(); });
+adventureModeButton.addEventListener('click', () => showScreen('adventureSelection'));
 restartButton.addEventListener('click', () => showScreen('modeSelection'));
 menuButton.addEventListener('click', () => showScreen('mainMenu'));
 document.querySelectorAll('.back-button').forEach(btn => {
@@ -1252,6 +1347,14 @@ pauseToMenuButton.addEventListener('click', () => {
     saveGameData();
     showScreen('mainMenu');
 });
+level1Button.addEventListener('click', () => showScreen('adventureModal'));
+startLevel1Button.addEventListener('click', () => {
+    gameMode = 'adventure';
+    showScreen('gameContainer');
+    init();
+});
+backFromModalButton.addEventListener('click', () => showScreen('adventureSelection'));
+winToMenuButton.addEventListener('click', () => showScreen('mainMenu'));
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
         togglePause(true);
@@ -1260,7 +1363,7 @@ document.addEventListener('visibilitychange', () => {
 
 window.addEventListener('keydown', (e) => keys[e.key] = true); window.addEventListener('keyup', (e) => keys[e.key] = false);
 
-function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; const touch = e.changedTouches[0]; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = joystick.stickY = touch.clientY - canvas.getBoundingClientRect().top; joystick.dx = 0; joystick.dy = 0; }
+function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; const touch = e.changedTouches[0]; joystick.active = true; joystick.id = touch.identifier; joystick.baseX = joystick.stickX = touch.clientX; joystick.baseY = touch.clientY - canvas.getBoundingClientRect().top; joystick.dx = 0; joystick.dy = 0; }
 function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } if (dist > 10) { joystick.dx = dx / dist; joystick.dy = dy / dist; } else { joystick.dx = 0; joystick.dy = 0; } }
 function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; joystick.dx = 0; joystick.dy = 0; } }
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
