@@ -104,8 +104,11 @@
         </div>
         <div class="relative flex-grow">
              <canvas id="gameCanvas" class="absolute inset-0"></canvas>
-             <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
-                <h2 class="text-5xl text-yellow-400" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
+             <!-- Updated Pause Screen with buttons -->
+             <div id="pauseScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
+                <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПАУЗА</h2>
+                <button id="resumeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-4">ПРОДОЛЖИТЬ</button>
+                <button id="pauseToMenuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
             </div>
         </div>
     </div>
@@ -223,6 +226,9 @@ const asmrTimerEl = document.getElementById('asmrTimer');
 const greetingEl = document.getElementById('greeting');
 const pauseButton = document.getElementById('pauseButton');
 const pauseScreen = document.getElementById('pauseScreen');
+// NEW: Pause screen buttons
+const resumeButton = document.getElementById('resumeButton');
+const pauseToMenuButton = document.getElementById('pauseToMenuButton');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
@@ -1087,8 +1093,12 @@ function updateStatsScreen() {
     const totalChallengeKills = stats.kills.challenge.normal + stats.kills.challenge.red + stats.kills.challenge.black;
 
     totalCoinsStat.textContent = stats.totalCoins;
-    relaxKillsStat.textContent = totalRelaxKills;
-    challengeKillsStat.textContent = totalChallengeKills;
+    relaxNormalStat.textContent = stats.kills.relax.normal;
+    relaxRedStat.textContent = stats.kills.relax.red;
+    relaxBlackStat.textContent = stats.kills.relax.black;
+    challengeNormalStat.textContent = stats.kills.challenge.normal;
+    challengeRedStat.textContent = stats.kills.challenge.red;
+    challengeBlackStat.textContent = stats.kills.challenge.black;
     relaxBestScoreStat.textContent = stats.bestScore.relax;
     challengeBestScoreStat.textContent = stats.bestScore.challenge;
 }
@@ -1232,7 +1242,16 @@ document.querySelectorAll('.back-button').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
 pauseButton.addEventListener('click', () => togglePause());
-pauseScreen.addEventListener('click', () => togglePause(false)); // Unpause on click
+// NEW: Event listeners for pause screen buttons
+resumeButton.addEventListener('click', () => togglePause(false));
+pauseToMenuButton.addEventListener('click', () => {
+    // Save current game progress and go to main menu
+    if (score > gameData.stats.bestScore[gameMode]) {
+        gameData.stats.bestScore[gameMode] = score;
+    }
+    saveGameData();
+    showScreen('mainMenu');
+});
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
         togglePause(true);
@@ -1276,4 +1295,3 @@ window.onload = async () => {
 </script>
 </body>
 </html>
-
