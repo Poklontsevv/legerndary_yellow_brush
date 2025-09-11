@@ -132,11 +132,11 @@
     <!-- Adventure Level Description Modal -->
     <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4">
         <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg w-full max-w-sm">
-            <h3 class="text-2xl mb-4 font-bold text-yellow-400">ИСТОРИЯ 1.</h3>
-            <p class="mb-6 text-sm">В добром мире ASMRland начали появляться ТРЕВОЖИНКИ. И легендарная жёлтая расчёска вылетела на защиту добра и спокойствия.</p>
-            <p class="mb-8 text-sm">Задачи уровня: поразить 20 белых привидений.</p>
+            <h3 id="adventureModalTitle" class="text-2xl mb-4 font-bold text-yellow-400"></h3>
+            <p id="adventureModalStory" class="mb-6 text-sm"></p>
+            <p id="adventureModalTask" class="mb-8 text-sm"></p>
             <div class="flex flex-col gap-4">
-                <button id="startLevel1Button" class="pixel-button text-xl px-8 py-4">НАЧАТЬ</button>
+                <button id="startLevelButton" class="pixel-button text-xl px-8 py-4">НАЧАТЬ</button>
                 <button id="backFromModalButton" class="pixel-button text-xl px-8 py-4">НАЗАД</button>
             </div>
         </div>
@@ -154,7 +154,7 @@
     <!-- Win Screen -->
     <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
         <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПОБЕДА</h2>
-        <div class="text-5xl mb-12">
+        <div id="winStars" class="text-5xl mb-12">
             <span class="text-yellow-400">⭐</span>
             <span class="text-yellow-400">⭐</span>
             <span class="text-yellow-400">⭐</span>
@@ -274,14 +274,19 @@ const pauseScreen = document.getElementById('pauseScreen');
 const livesContainer = document.getElementById('livesContainer');
 const adventureProgressContainer = document.getElementById('adventureProgressContainer');
 const adventureProgressEl = document.getElementById('adventureProgress');
+const adventureGoalEl = document.getElementById('adventureGoal');
 // NEW: Pause screen buttons
 const resumeButton = document.getElementById('resumeButton');
 const pauseToMenuButton = document.getElementById('pauseToMenuButton');
 const adventureModal = document.getElementById('adventureModal');
-const startLevel1Button = document.getElementById('startLevel1Button');
+const adventureModalTitle = document.getElementById('adventureModalTitle');
+const adventureModalStory = document.getElementById('adventureModalStory');
+const adventureModalTask = document.getElementById('adventureModalTask');
+const startLevelButton = document.getElementById('startLevelButton');
 const backFromModalButton = document.getElementById('backFromModalButton');
 const winScreen = document.getElementById('winScreen');
 const winToMenuButton = document.getElementById('winToMenuButton');
+const winStars = document.getElementById('winStars');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
@@ -316,8 +321,14 @@ let isPaused = false;
 let menuClouds = [];
 let lastMenuCloudSpawn = 0;
 // Adventure Mode
+let adventureLevel = 0;
 let enemiesKilled = 0;
-const ADVENTURE_GOAL = 20;
+let coinsCollected = 0;
+let adventureGoals = {
+    1: { normalGhosts: 20, coins: 0, redGhosts: 0, blackGhosts: 0 },
+    2: { normalGhosts: 0, coins: 15, redGhosts: 0, blackGhosts: 0 },
+    3: { normalGhosts: 0, coins: 20, redGhosts: 10, blackGhosts: 0 },
+};
 
 
 // Timers & Intervals
@@ -911,6 +922,7 @@ function init() {
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
     lastBlackGhostSpawn = 0; blackGhostSpawnRate = Math.random() * 30000 + 60000;
     enemiesKilled = 0;
+    coinsCollected = 0;
 
     updateUI();
     togglePause(false); // Make sure pause screen is hidden
@@ -918,11 +930,22 @@ function init() {
     gameLoop(0);
 }
 function spawnEntities(timestamp) {
+    const goal = adventureGoals[adventureLevel];
     if (gameMode === 'adventure') {
-        if (enemiesKilled < ADVENTURE_GOAL && timestamp - lastEnemySpawn > enemySpawnRate) {
-            enemies.push(new Enemy());
-            lastEnemySpawn = timestamp;
+        let spawnChance = Math.random();
+        if (adventureLevel === 1 && enemiesKilled < goal.normalGhosts) {
+             if (timestamp - lastEnemySpawn > 1500) { enemies.push(new Enemy()); lastEnemySpawn = timestamp; }
+        } else if (adventureLevel === 2 && coinsCollected < goal.coins) {
+            if (timestamp - lastCoinSpawn > 2000) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+        } else if (adventureLevel === 3) {
+            if (enemiesKilled < goal.redGhosts) {
+                if (timestamp - lastEnemySpawn > 2500) { enemies.push(new RedEnemy()); lastEnemySpawn = timestamp; }
+            }
+            if (coinsCollected < goal.coins) {
+                 if (timestamp - lastCoinSpawn > 3000) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+            }
         }
+
     } else {
         // Regular mode enemy spawning
         if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
@@ -953,15 +976,22 @@ function checkCollisions() {
         for (let j = enemies.length - 1; j >= 0; j--) {
             if (isColliding(bullets[i], enemies[j])) {
                 const enemy = enemies[j];
-                // Adventure mode only has white ghosts, so simplify
+                
                 if (gameMode === 'adventure') {
-                    enemiesKilled++;
-                    createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
-                    enemies.splice(j, 1);
-                    updateUI(); // Update counter
-                    if (enemiesKilled >= ADVENTURE_GOAL) {
-                        handleVictory();
+                    if (adventureLevel === 1) { // Lvl 1: only white ghosts
+                        enemiesKilled++;
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        enemies.splice(j, 1);
+                    } else if (adventureLevel === 3) { // Lvl 3: red ghosts
+                        enemy.health--;
+                        if (enemy.health <= 0) {
+                            enemiesKilled++;
+                            createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
+                            enemies.splice(j, 1);
+                        }
                     }
+                    updateUI(); // Update counter
+                    checkAdventureWinCondition();
                 } else {
                     if (enemy instanceof RedEnemy) {
                         enemy.health--;
@@ -988,8 +1018,17 @@ function checkCollisions() {
     for (let i = collectibles.length - 1; i >= 0; i--) {
         if(isColliding(player, collectibles[i])) {
             const item = collectibles[i];
-            if (item.type === 'coin') { score++; gameData.stats.totalCoins++; saveGameData(); }
-            else if (item.type === 'heart') { if (lives < 3) lives++; }
+            if (item.type === 'coin') {
+                if (gameMode === 'adventure') {
+                    coinsCollected++;
+                    updateUI();
+                    checkAdventureWinCondition();
+                } else {
+                    score++;
+                    gameData.stats.totalCoins++; 
+                    saveGameData();
+                }
+            } else if (item.type === 'heart') { if (lives < 3) lives++; }
             else { collectedLetters.add(item.type); if (collectedLetters.size === 4) { asmrActive = true; asmrEndTime = Date.now() + 20000; } }
             collectibles.splice(i, 1); updateUI();
         }
@@ -1028,10 +1067,23 @@ function gameOver() {
     showScreen('gameOverScreen');
     finalScoreEl.textContent = score;
 }
+function checkAdventureWinCondition() {
+    const goal = adventureGoals[adventureLevel];
+    if (adventureLevel === 1 && enemiesKilled >= goal.normalGhosts) {
+        handleVictory();
+    } else if (adventureLevel === 2 && coinsCollected >= goal.coins) {
+        handleVictory();
+    } else if (adventureLevel === 3 && enemiesKilled >= goal.redGhosts && coinsCollected >= goal.coins) {
+        handleVictory();
+    }
+}
 function handleVictory() {
     isGameOver = true;
     cancelAnimationFrame(gameLoopId);
     showScreen('winScreen');
+    winStars.innerHTML = '';
+    // Unlock next level and give a reward
+    for(let i=0; i<3; i++) { winStars.innerHTML += '<span class="text-yellow-400">⭐</span>'; }
     // TODO: unlock next level
 }
 function gameLoop(timestamp) {
@@ -1129,7 +1181,15 @@ function updateUI() {
         scoreEl.textContent = '---';
         asmrContainer.classList.add('hidden');
         adventureProgressContainer.classList.remove('hidden');
-        adventureProgressEl.textContent = enemiesKilled;
+        const goal = adventureGoals[adventureLevel];
+        if (adventureLevel === 1) {
+            adventureProgressEl.textContent = `${enemiesKilled} / ${goal.normalGhosts}`;
+        } else if (adventureLevel === 2) {
+            adventureProgressEl.textContent = `${coinsCollected} / ${goal.coins}`;
+        } else if (adventureLevel === 3) {
+            adventureProgressEl.textContent = `Красные: ${enemiesKilled} / ${goal.redGhosts}, Монеты: ${coinsCollected} / ${goal.coins}`;
+        }
+        adventureGoalEl.textContent = '---'; // Since it's now dynamic
     } else {
         livesContainer.classList.remove('hidden');
         adventureProgressContainer.classList.add('hidden');
@@ -1347,8 +1407,28 @@ pauseToMenuButton.addEventListener('click', () => {
     saveGameData();
     showScreen('mainMenu');
 });
-level1Button.addEventListener('click', () => showScreen('adventureModal'));
-startLevel1Button.addEventListener('click', () => {
+level1Button.addEventListener('click', () => {
+    adventureLevel = 1;
+    adventureModalTitle.textContent = "ИСТОРИЯ 1.";
+    adventureModalStory.textContent = "В добром мире ASMRland начали появляться ТРЕВОЖИНКИ. И легендарная жёлтая расчёска вылетела на защиту добра и спокойствия.";
+    adventureModalTask.textContent = `Задачи уровня: поразить ${adventureGoals[1].normalGhosts} белых привидений.`;
+    showScreen('adventureModal');
+});
+level2Button.addEventListener('click', () => {
+    adventureLevel = 2;
+    adventureModalTitle.textContent = "ИСТОРИЯ 2. Сладкая жизнь";
+    adventureModalStory.textContent = "Путешествуя по ASMRland, легендарная расчёска наткнулась на облака, полные монет! Нужно собрать их все.";
+    adventureModalTask.textContent = `Задачи уровня: собрать ${adventureGoals[2].coins} монет.`;
+    showScreen('adventureModal');
+});
+level3Button.addEventListener('click', () => {
+    adventureLevel = 3;
+    adventureModalTitle.textContent = "ИСТОРИЯ 3. Битва за покой";
+    adventureModalStory.textContent = "Злые красные призраки-тревожинки стали гораздо сильнее, но и расчёска стала мощнее. Нужно сокрушить их и забрать сокровища.";
+    adventureModalTask.textContent = `Задачи уровня: убить ${adventureGoals[3].redGhosts} красных призраков и собрать ${adventureGoals[3].coins} монет.`;
+    showScreen('adventureModal');
+});
+startLevelButton.addEventListener('click', () => {
     gameMode = 'adventure';
     showScreen('gameContainer');
     init();
