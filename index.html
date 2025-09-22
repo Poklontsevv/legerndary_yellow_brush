@@ -2,79 +2,47 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>ЛЕГЕНДАРНАЯ ЖЁЛТАЯ РАСЧЁСКА</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключаем скрипт Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        
+
         html, body {
-          height: 100dvh;       /* корректный vh на мобильных */
-          width: 100vw;
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-          background: #0b1220;  /* чтобы не видеть серую полосу, если что-то не дорисуется */
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
-        
+
         body {
             font-family: 'Press+Start+2P', cursive;
             touch-action: none;
+            overflow: hidden;
             background-color: #1a202c;
             color: #f1f5f9;
-            position: fixed;  /* убираем влияние адресных/системных панелей */
-            inset: 0;
         }
 
-        .safe {
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
-        #rotateOverlay {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            background-color: rgba(26, 32, 44, 0.95);
-            color: white;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        #rotateOverlay.show {
-            display: flex;
-        }
-
-        #menuBgCanvas, #gameCanvas {
-          position: fixed;
-          /* учитываем safe areas, чтобы ничего не «подпрыгивало» под вырезы/статусбар */
-          inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-          width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
-          height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-          display: block;
-        }
-        
-        #gameContainer {
-            position: fixed;
-            left: env(safe-area-inset-left);
-            right: env(safe-area-inset-right);
+        #menuBgCanvas {
+            position: absolute;
             top: 0;
-            bottom: env(safe-area-inset-bottom);
-        }
-
-        #uiBar {
-          position: fixed;
-          left: env(safe-area-inset-left);
-          right: env(safe-area-inset-right);
-          top: env(safe-area-inset-top);
-          z-index: 30;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
 
         .comb-float { animation: float 3s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
-        
+
         .pixel-button {
             background-color: #fBBF24; color: #1e293b; border: 4px solid #1e293b;
             box-shadow: 6px 6px 0 #1e293b; transition: all 0.1s ease-in-out; transform: translate(0, 0);
@@ -82,12 +50,12 @@
         .pixel-button:hover { box-shadow: 4px 4px 0 #1e293b; transform: translate(2px, 2px); }
         .pixel-button:active { box-shadow: 2px 2px 0 #1e293b; transform: translate(4px, 4px); }
         .pixel-button:disabled { background-color: #9ca3af; box-shadow: 6px 6px 0 #4b5563; color: #4b5563; }
-        
+
         .shop-item { border: 4px solid #4b5563; cursor: pointer; background-color: #334155; }
         .shop-item.selected { border-color: #fBBF24; box-shadow: 0 0 10px #fBBF24; }
         .shop-item.locked { filter: grayscale(1) brightness(0.5); }
         .shop-item canvas { height: 40px; }
-        
+
         .level-button { border: 4px solid #4b5563; background-color: #334155; }
         .level-button.completed { border-color: #34d399; }
         .level-button-unlocked { cursor: pointer; }
@@ -111,13 +79,6 @@
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
-    
-    <div id="rotateOverlay" class="safe" role="dialog" aria-live="polite">
-      <div style="text-align:center">
-        <div style="font-size:22px;margin-bottom:12px;">Поверните устройство</div>
-        <div style="opacity:.8;">Игра работает в горизонтальной ориентации</div>
-      </div>
-    </div>
 
     <canvas id="menuBgCanvas"></canvas>
     <!-- Loading Screen -->
@@ -146,10 +107,10 @@
         <button id="adventureModeButton" class="pixel-button text-xl md:text-2xl px-8 py-4 mb-6 w-64">ПРИКЛЮЧЕНИЕ</button>
         <button data-target="mainMenu" class="back-button pixel-button text-xl md:text-2xl px-8 py-4 w-64">НАЗАД</button>
     </div>
-    
+
     <!-- Game Screen -->
     <div id="gameContainer" class="hidden w-full h-full flex flex-col">
-        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative safe">
+        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative">
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
                 <div id="livesContainer">ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
@@ -173,9 +134,9 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Adventure Mode Level Selection -->
-    <div id="adventureSelection" class="hidden text-center p-4 relative z-10 safe">
+    <div id="adventureSelection" class="hidden text-center p-4 relative z-10">
       <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6">ВЫБЕРИТЕ УРОВЕНЬ</h2>
 
       <!-- Обёртка с прокруткой -->
@@ -190,7 +151,7 @@
     </div>
 
     <!-- Adventure Level Description Modal -->
-    <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4 safe">
+    <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4">
         <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg w-full max-w-sm">
             <h3 id="adventureModalTitle" class="text-2xl mb-4 font-bold text-yellow-400"></h3>
             <p id="adventureModalStory" class="mb-6 text-sm"></p>
@@ -201,9 +162,9 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10 safe">
+    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10">
          <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
          <p class="text-xl md:text-2xl mb-4">ВАШ СЧЁТ:</p>
          <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
@@ -212,7 +173,7 @@
     </div>
 
     <!-- Win Screen -->
-    <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20 safe">
+    <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
         <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПОБЕДА</h2>
         <div id="winStars" class="text-5xl mb-12">
         </div>
@@ -222,7 +183,7 @@
     </div>
 
     <!-- Statistics Screen -->
-    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg relative z-10 safe">
+    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg relative z-10">
         <h2 class="text-3xl text-yellow-400 mb-8">ВАША СТАТИСТИКА</h2>
         <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
             <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
@@ -240,15 +201,15 @@
         </div>
         <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
     </div>
-    
+
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10 safe">
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10">
         <!-- Non-scrolling header -->
         <div class="flex-shrink-0">
             <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
             <p class="mb-6">Ваши монеты: <span id="shopCoinBalance" class="text-yellow-400">0</span></p>
         </div>
-        
+
         <!-- Scrolling content -->
         <div class="flex-grow overflow-y-auto" style="touch-action: pan-y;">
             <h3 class="text-xl mt-4 mb-2 text-cyan-400">Вид расчёски</h3>
@@ -262,19 +223,19 @@
 
             <h3 class="text-xl mt-6 mb-2 text-cyan-400">Цвет (для классики)</h3>
             <div id="combColorShop" class="grid grid-cols-4 sm:grid-cols-6 gap-4 p-2 bg-gray-800"></div>
-            
+
             <h3 class="text-xl mt-6 mb-2 text-cyan-400">Фон</h3>
             <div id="backgroundShop" class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-2 bg-gray-800"></div>
         </div>
-        
+
         <!-- Non-scrolling footer -->
         <div class="flex-shrink-0">
             <button data-target="mainMenu" class="back-button pixel-button text-xl mt-8 px-8 py-3">НАЗАД</button>
         </div>
     </div>
-    
+
     <!-- Purchase Modal -->
-    <div id="purchaseModal" class="hidden absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center safe">
+    <div id="purchaseModal" class="hidden absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center">
         <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg">
             <h3 class="text-2xl mb-4">Покупка товара</h3>
             <p id="purchaseItemName" class="mb-6"></p>
@@ -625,13 +586,13 @@ const DRAW_FUNCTIONS = {
         const outerRadius = size / 2;
         const innerRadius = size / 4;
         const icingColor = `hsl(${Math.random() * 360}, 70%, 70%)`;
-        
+
         ctx.fillStyle = '#d2b48c'; // Dough color
         ctx.beginPath();
         ctx.arc(x, y, outerRadius, 0, Math.PI * 2, false);
         ctx.arc(x, y, innerRadius, 0, Math.PI * 2, true);
         ctx.fill();
-        
+
         ctx.fillStyle = icingColor; // Icing color
         ctx.beginPath();
         ctx.arc(x, y, outerRadius * 0.9, 0, Math.PI * 2, false);
@@ -779,7 +740,7 @@ class Player {
     constructor() {
         this.speed = 8;
         this.lastTrailTime = 0;
-        
+
         const img = gameImages.classicComb;
         if (img && img.complete && img.naturalWidth > 0) {
             const aspectRatio = img.height / img.width;
@@ -796,7 +757,7 @@ class Player {
     draw(ctx) {
         const item = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
         const color = gameData.shop.selectedColor;
-        
+
         let width = this.width;
         let height = this.height;
         const img = gameImages[item.id];
@@ -830,10 +791,10 @@ class Player {
                 dy /= length;
             }
         }
-        
+
         this.x += dx * this.speed;
         this.y += dy * this.speed;
-        
+
         if (this.y < 0) this.y = 0; if (this.y > canvas.height - this.height) this.y = canvas.height - this.height;
         if (this.x < 0) this.x = 0; if (this.x > canvas.width / 3 - this.width) this.x = canvas.width / 3 - this.width;
 
@@ -974,7 +935,7 @@ class BlackGhost extends Enemy {
             this.x = canvas.width - this.width;
             this.dx = -1; // Move left
         }
-        
+
         // Shooting
         if (this.shoots && Date.now() - this.lastShot > this.shootCooldown) {
             enemyBullets.push(new EnemyBullet(this.x, this.y + this.height / 2));
@@ -1096,7 +1057,7 @@ function buildAdventureGrid(){
     btn.className = 'level-button pixel-button level-tile';
     btn.dataset.level = String(n);
     btn.textContent = n;
-    
+
     btn.addEventListener('click', ()=>{
       if(btn.classList.contains('locked')) return;
       openAdventureModal(n);
@@ -1122,11 +1083,16 @@ function refreshAdventureLevelButtons(){
 
 // --- Game Functions ---
 let backgroundDrawer;
-function _init() {
+function init() {
+    // 1) СБРОС СОСТОЯНИЙ
     isGameOver = false;
     isPaused = false;
-    if (pauseScreen) pauseScreen.classList.add('hidden');
 
+    const uiHeight = document.getElementById('uiBar').offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - uiHeight;
+
+    // 3) НАДЁЖНО ВЫБИРАЕМ ФОН
     backgroundDrawer =
       SHOP_ITEMS.backgrounds.find(bg => bg.id === (gameData.shop.selectedBackground || 'default'))
       || SHOP_ITEMS.backgrounds[0];
@@ -1147,6 +1113,8 @@ function _init() {
         stateAdventure = { kill:{white:0, red:0, black:0}, collect:{coins:0}, surviveStart:0 };
         const currentGoals = adventureConfig[adventureLevel]?.goals || {};
         if (currentGoals.surviveSec) stateAdventure.surviveStart = performance.now();
+
+        // 2) СБРОС ТАЙМЕРОВ SPAWN
         spawnAdventure._t = {};
     }
 
@@ -1180,7 +1148,7 @@ function spawnEntities(timestamp) {
         spawnAdventure(timestamp); 
         return; 
     }
-    
+
     // Regular mode enemy spawning
     if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
     if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
@@ -1209,7 +1177,7 @@ function checkCollisions() {
         for (let j = enemies.length - 1; j >= 0; j--) {
             if (isColliding(bullets[i], enemies[j])) {
                 const enemy = enemies[j];
-                
+
                 if (gameMode === 'adventure') {
                     if (enemy instanceof RedEnemy) {
                         enemy.health--;
@@ -1272,7 +1240,7 @@ function checkCollisions() {
                 if (blackGhost.health <= 0) {
                     createExplosion(blackGhost.x + blackGhost.width / 2, blackGhost.y + blackGhost.height / 2, '#4a044e');
                     for(let k=0; k<5; k++) { collectibles.push(new Collectible('coin', blackGhost.x + (Math.random() * blackGhost.width), blackGhost.y + (Math.random() * blackGhost.height))); }
-                    
+
                     if(gameMode === 'adventure'){
                         stateAdventure.kill.black++;
                     } else {
@@ -1316,12 +1284,12 @@ function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.p
 function gameOver() {
     isGameOver = true;
     cancelAnimationFrame(gameLoopId);
-    
+
     if (score > gameData.stats.bestScore[gameMode]) {
         gameData.stats.bestScore[gameMode] = score;
         saveGameData();
     }
-    
+
     if (gameMode === 'adventure') {
         menuButton.textContent = 'ВЫБОР УРОВНЯ';
         menuButton.onclick = () => showScreen('adventureSelection');
@@ -1344,27 +1312,27 @@ function gameOver() {
 function handleVictory() {
     isGameOver = true;
     cancelAnimationFrame(gameLoopId);
-    
+
     winToLevelsButton.classList.add('hidden');
     nextLevelButton.classList.add('hidden');
 
     if (gameMode === 'adventure') {
         unlockLevel(adventureLevel + 1);
         const hasNext = (adventureLevel + 1) <= Object.keys(adventureConfig).length;
-        
+
         winToLevelsButton.classList.remove('hidden');
         if (hasNext) {
             nextLevelButton.classList.remove('hidden');
         }
     }
-    
+
     showScreen('winScreen');
     winStars.innerHTML = '';
     for(let i=0; i<3; i++) { winStars.innerHTML += '<span class="text-yellow-400">⭐</span>'; }
 }
 function gameLoop(timestamp) {
     if (isGameOver) return;
-    
+
     if (!isPaused) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         backgroundDrawer.draw(canvas, ctx);
@@ -1372,16 +1340,16 @@ function gameLoop(timestamp) {
         if (gameMode === 'challenge' && challengeMinute < 10) { challengeTimer += 16.67; if (challengeTimer >= 30000) { challengeTimer = 0; challengeMinute++; speedMultiplier *= 1.2; enemySpawnRate /= 1.2; } }
         if (asmrActive && Date.now() > asmrEndTime) { asmrActive = false; collectedLetters.clear(); updateUI(); }
         spawnEntities(timestamp); handleShooting(timestamp);
-        
+
         [clouds, particles, trailParticles, bats, bullets, enemyBullets, enemies, collectibles].forEach(arr => arr.forEach(item => item.update()));
         if (player) player.update();
         if (blackGhost) blackGhost.update();
         foregroundClouds.forEach(c => c.update());
-        
+
         const allObjects = [clouds, trailParticles, bats, enemies];
         if (blackGhost) allObjects.push([blackGhost]); 
         allObjects.push(player, collectibles, bullets, enemyBullets, particles);
-        
+
         allObjects.forEach(arr => { 
             if (!arr) return;
             if (Array.isArray(arr)) arr.forEach(item => item.draw(ctx)); 
@@ -1390,18 +1358,18 @@ function gameLoop(timestamp) {
 
         foregroundClouds.forEach(c => c.draw(ctx)); 
         if (isTouchDevice) drawJoystick();
-        
+
         bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
         enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
         particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
         clouds = clouds.filter(c => c.x + c.width > 0);
         foregroundClouds = foregroundClouds.filter(c => c.x + c.width > 0);
         bats = bats.filter(b => b.x + b.width > 0);
-        
+
         checkCollisions();
         if (gameMode === 'adventure') updateUI();
     }
-    
+
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
@@ -1445,7 +1413,7 @@ function menuLoop(timestamp) {
     });
 
     menuClouds = menuClouds.filter(c => c.x + c.width > 0);
-    
+
     menuLoopId = requestAnimationFrame(menuLoop);
 }
 
@@ -1456,9 +1424,8 @@ function updateUI() {
         scoreEl.textContent = '---';
         asmrContainer.classList.add('hidden');
         adventureProgressContainer.classList.remove('hidden');
-        
-        const goals = adventureConfig[adventureLevel]?.goals;
-        if (!goals) return;
+
+        const goals = adventureConfig[adventureLevel].goals;
         const s = stateAdventure;
         let progressText = [];
 
@@ -1511,13 +1478,13 @@ function showScreen(screenId) {
     }
 
     if (screenId === 'statsScreen') updateStatsScreen();
-    
+
     if (screenId === 'mainMenu') {
         const menuCtx = menuCombCanvas.getContext('2d');
         menuCombCanvas.width = 192; menuCombCanvas.height = 192;
         const selectedComb = SHOP_ITEMS.combs.find(c => c.id === gameData.shop.selectedComb);
         selectedComb.draw(menuCtx, gameData.shop.selectedColor, 192, 192);
-        
+
         try {
             const user = window.Telegram.WebApp.initDataUnsafe.user;
             greetingEl.textContent = `Привет, ${user.first_name}!`;
@@ -1525,7 +1492,6 @@ function showScreen(screenId) {
             greetingEl.textContent = `Привет, Игрок!`;
         }
     }
-    fitAll();
 }
 function updateStatsScreen() {
     const stats = gameData.stats;
@@ -1554,14 +1520,14 @@ function renderShopCategory(categoryKey, container, unlockedKey, selectedKey, dr
         const isSelected = gameData.shop[selectedKey] === item.id;
         const div = document.createElement('div');
         div.className = `shop-item p-2 ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
-        
+
         let itemDisplay = `<canvas class="mx-auto w-full"></canvas>`;
         let priceText = isUnlocked ? (isSelected ? 'Выбрано' : 'Выбрать') : `Монеты: ${item.cost}`;
         if (!isUnlocked && item.starCost > 0) {
             priceText += ` / Stars: ${item.starCost}`;
         }
         div.innerHTML = `${itemDisplay}<p class="text-xs mt-1">${item.name}</p><p class="text-xs text-yellow-400">${priceText}</p>`;
-        
+
         div.onclick = () => handleShopClick(categoryKey, unlockedKey, selectedKey, item);
         container.appendChild(div);
 
@@ -1586,7 +1552,7 @@ function handleShopClick(categoryKey, unlockedKey, selectedKey, item) {
 }
 function showPurchaseModal(categoryKey, unlockedKey, selectedKey, item) {
     purchaseItemName.textContent = item.name;
-    
+
     buyWithCoinsBtn.textContent = `Купить за ${item.cost} монет`;
     buyWithCoinsBtn.disabled = gameData.stats.totalCoins < item.cost;
     buyWithCoinsBtn.onclick = () => {
@@ -1607,7 +1573,7 @@ function showPurchaseModal(categoryKey, unlockedKey, selectedKey, item) {
     } else {
         buyWithStarsBtn.classList.add('hidden');
     }
-    
+
     cancelPurchaseBtn.onclick = hidePurchaseModal;
     purchaseModal.classList.remove('hidden');
 }
@@ -1641,60 +1607,6 @@ function openAdventureModal(level){
   adventureModalTask.textContent = t.task;
   showScreen('adventureModal');
 }
-
-function getViewportHeight() {
-  return Math.max(window.innerHeight, document.documentElement.clientHeight);
-}
-
-function fitAll() {
-    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-    const fullW = window.innerWidth;
-    const fullH = getViewportHeight();
-
-    // Подогнать фон меню
-    menuBgCanvas.style.width = fullW + 'px';
-    menuBgCanvas.style.height = fullH + 'px';
-    menuBgCanvas.width = Math.floor(fullW * dpr);
-    menuBgCanvas.height = Math.floor(fullH * dpr);
-    menuBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // Высота верхней панели (uiBar)
-    const uiBar = document.getElementById('uiBar');
-    const uiH = uiBar ? uiBar.offsetHeight : 0;
-    
-    const gameW = fullW;
-    const gameH = fullH - uiH;
-
-    // Подогнать игровой канвас
-    canvas.style.width  = gameW + 'px';
-    canvas.style.height = gameH + 'px';
-    canvas.width  = Math.floor(gameW * dpr);
-    canvas.height = Math.floor(gameH * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-
-
-function ensureLandscape() {
-  const portrait = window.innerHeight > window.innerWidth;
-  const rot = document.getElementById('rotateOverlay');
-  if (portrait) {
-      rot.classList.add('show');
-  } else {
-      rot.classList.remove('show');
-  }
-  fitAll();
-  return !portrait;
-}
-window.addEventListener('resize', fitAll);
-window.addEventListener('orientationchange', fitAll);
-
-
-let init = _init; // keep original function
-const __init = init;
-init = function() {
-  if (!ensureLandscape()) return;
-  __init();
-};
 
 // --- Controls & Event Handlers ---
 function togglePause(forcePause) {
@@ -1756,6 +1668,11 @@ function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; 
 function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } if (dist > 10) { joystick.dx = dx / dist; joystick.dy = dy / dist; } else { joystick.dx = 0; joystick.dy = 0; } }
 function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; joystick.dx = 0; joystick.dy = 0; } }
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
+window.addEventListener('resize', () => {
+    if(gameContainer.offsetParent !== null) {
+       init(); 
+    }
+});
 
 // --- Initial Load ---
 window.onload = async () => {
@@ -1769,23 +1686,19 @@ window.onload = async () => {
 
     try { 
         window.Telegram.WebApp.ready(); 
-        window.Telegram.WebApp.expand();
-        window.Telegram.WebApp.setBackgroundColor('#0b1220');
         window.Telegram.WebApp.disableVerticalSwipes();
         userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
     } catch(e) { 
         console.log('Not in Telegram or user ID not available.');
         userId = 'default_player';
     }
-    
+
     loadGameData();
     buildAdventureGrid();
     refreshAdventureLevelButtons();
-    fitAll();
-    ensureLandscape();
     showScreen('mainMenu');
 };
 </script>
 </body>
 </html>
-
+~
