@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <title>ЛЕГЕНДАРНАЯ ЖЁЛТАЯ РАСЧЁСКА</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключаем скрипт Telegram Web App -->
@@ -23,6 +23,26 @@
             overflow: hidden;
             background-color: #1a202c;
             color: #f1f5f9;
+            min-height: 100svh;
+        }
+
+        .safe {
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        #rotateOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background-color: rgba(26, 32, 44, 0.95);
+            color: white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #rotateOverlay.show {
+            display: flex;
         }
 
         canvas {
@@ -80,6 +100,13 @@
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
     
+    <div id="rotateOverlay" class="safe" role="dialog" aria-live="polite">
+      <div style="text-align:center">
+        <div style="font-size:22px;margin-bottom:12px;">Поверните устройство</div>
+        <div style="opacity:.8;">Игра работает в горизонтальной ориентации</div>
+      </div>
+    </div>
+
     <canvas id="menuBgCanvas"></canvas>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center text-center p-4">
@@ -110,7 +137,7 @@
     
     <!-- Game Screen -->
     <div id="gameContainer" class="hidden w-full h-full flex flex-col">
-        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative">
+        <div id="uiBar" class="bg-gray-800 p-2 flex justify-between items-center text-lg md:text-xl z-30 relative safe">
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
                 <div id="livesContainer">ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
@@ -136,7 +163,7 @@
     </div>
     
     <!-- Adventure Mode Level Selection -->
-    <div id="adventureSelection" class="hidden text-center p-4 relative z-10">
+    <div id="adventureSelection" class="hidden text-center p-4 relative z-10 safe">
       <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6">ВЫБЕРИТЕ УРОВЕНЬ</h2>
 
       <!-- Обёртка с прокруткой -->
@@ -151,7 +178,7 @@
     </div>
 
     <!-- Adventure Level Description Modal -->
-    <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4">
+    <div id="adventureModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center p-4 safe">
         <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg w-full max-w-sm">
             <h3 id="adventureModalTitle" class="text-2xl mb-4 font-bold text-yellow-400"></h3>
             <p id="adventureModalStory" class="mb-6 text-sm"></p>
@@ -164,7 +191,7 @@
     </div>
     
     <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10">
+    <div id="gameOverScreen" class="hidden text-center p-4 flex flex-col items-center relative z-10 safe">
          <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-8">ИГРА ОКОНЧЕНА</h2>
          <p class="text-xl md:text-2xl mb-4">ВАШ СЧЁТ:</p>
          <p id="finalScore" class="text-4xl md:text-6xl text-yellow-400 mb-12">0</p>
@@ -173,7 +200,7 @@
     </div>
 
     <!-- Win Screen -->
-    <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
+    <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20 safe">
         <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПОБЕДА</h2>
         <div id="winStars" class="text-5xl mb-12">
         </div>
@@ -183,7 +210,7 @@
     </div>
 
     <!-- Statistics Screen -->
-    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg relative z-10">
+    <div id="statsScreen" class="hidden p-4 text-center w-full max-w-lg relative z-10 safe">
         <h2 class="text-3xl text-yellow-400 mb-8">ВАША СТАТИСТИКА</h2>
         <div class="bg-gray-800 p-4 text-left text-sm md:text-base">
             <p class="mb-2">Всего собрано монет: <span id="totalCoinsStat" class="text-yellow-400">0</span></p>
@@ -203,7 +230,7 @@
     </div>
     
     <!-- Settings/Shop Screen -->
-    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10">
+    <div id="settingsScreen" class="hidden p-2 md:p-4 text-center w-full max-w-2xl h-screen flex flex-col relative z-10 safe">
         <!-- Non-scrolling header -->
         <div class="flex-shrink-0">
             <h2 class="text-3xl text-yellow-400 mb-4">МАГАЗИН</h2>
@@ -235,7 +262,7 @@
     </div>
     
     <!-- Purchase Modal -->
-    <div id="purchaseModal" class="hidden absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center">
+    <div id="purchaseModal" class="hidden absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center safe">
         <div class="bg-gray-800 border-4 border-yellow-400 p-6 text-center shadow-lg">
             <h3 class="text-2xl mb-4">Покупка товара</h3>
             <p id="purchaseItemName" class="mb-6"></p>
@@ -273,6 +300,11 @@ const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+try {
+  window.Telegram?.WebApp?.ready();
+  window.Telegram?.WebApp?.expand();
+  window.Telegram?.WebApp?.disableVerticalSwipes();
+} catch(e){ console.error("Telegram API failed", e); }
 const menuBgCanvas = document.getElementById('menuBgCanvas');
 const menuBgCtx = menuBgCanvas.getContext('2d');
 // UI Elements
@@ -1083,14 +1115,11 @@ function refreshAdventureLevelButtons(){
 
 // --- Game Functions ---
 let backgroundDrawer;
-function init() {
+function _init() {
     // 1) СБРОС СОСТОЯНИЙ
     isGameOver = false;
     isPaused = false;
-
-    const uiHeight = document.getElementById('uiBar').offsetHeight;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - uiHeight;
+    if (pauseScreen) pauseScreen.classList.add('hidden');
 
     // 3) НАДЁЖНО ВЫБИРАЕМ ФОН
     backgroundDrawer =
@@ -1425,7 +1454,8 @@ function updateUI() {
         asmrContainer.classList.add('hidden');
         adventureProgressContainer.classList.remove('hidden');
         
-        const goals = adventureConfig[adventureLevel].goals;
+        const goals = adventureConfig[adventureLevel]?.goals;
+        if (!goals) return;
         const s = stateAdventure;
         let progressText = [];
 
@@ -1608,6 +1638,40 @@ function openAdventureModal(level){
   showScreen('adventureModal');
 }
 
+function fitCanvas() {
+  const uiBar = document.getElementById('uiBar');
+  const uiH = uiBar ? uiBar.offsetHeight : 0;
+  const vw = window.innerWidth;
+  const vh = Math.max(0, window.innerHeight - uiH);
+
+  // CSS размер
+  canvas.style.width  = vw + 'px';
+  canvas.style.height = vh + 'px';
+
+  // ретина-масштаб
+  const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+  canvas.width  = Math.floor(vw * dpr);
+  canvas.height = Math.floor(vh * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function ensureLandscape() {
+  const portrait = window.innerHeight > window.innerWidth;
+  const rot = document.getElementById('rotateOverlay');
+  if (portrait) rot.classList.add('show'); else rot.classList.remove('show');
+  fitCanvas();
+  return !portrait;
+}
+window.addEventListener('resize', ensureLandscape);
+window.addEventListener('orientationchange', ensureLandscape);
+
+let init = _init; // keep original function
+const __init = init;
+init = function() {
+  if (!ensureLandscape()) return;
+  __init();
+};
+
 // --- Controls & Event Handlers ---
 function togglePause(forcePause) {
     if (isGameOver) return;
@@ -1668,11 +1732,6 @@ function handleTouchStart(e) { e.preventDefault(); if (joystick.active) return; 
 function handleTouchMove(e) { e.preventDefault(); if (!joystick.active) return; const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (!touch) return; const newY = touch.clientY - canvas.getBoundingClientRect().top; const dx = touch.clientX - joystick.baseX; const dy = newY - joystick.baseY; const dist = Math.sqrt(dx * dx + dy * dy); if (dist > joystick.radius) { joystick.stickX = joystick.baseX + (dx / dist) * joystick.radius; joystick.stickY = joystick.baseY + (dy / dist) * joystick.radius; } else { joystick.stickX = touch.clientX; joystick.stickY = newY; } if (dist > 10) { joystick.dx = dx / dist; joystick.dy = dy / dist; } else { joystick.dx = 0; joystick.dy = 0; } }
 function handleTouchEnd(e) { const touch = Array.from(e.changedTouches).find(t => t.identifier === joystick.id); if (touch) { joystick.active = false; joystick.id = null; joystick.dx = 0; joystick.dy = 0; } }
 if (isTouchDevice) { canvas.addEventListener('touchstart', handleTouchStart); canvas.addEventListener('touchmove', handleTouchMove); canvas.addEventListener('touchend', handleTouchEnd); canvas.addEventListener('touchcancel', handleTouchEnd); }
-window.addEventListener('resize', () => {
-    if(gameContainer.offsetParent !== null) {
-       init(); 
-    }
-});
 
 // --- Initial Load ---
 window.onload = async () => {
@@ -1696,6 +1755,7 @@ window.onload = async () => {
     loadGameData();
     buildAdventureGrid();
     refreshAdventureLevelButtons();
+    ensureLandscape();
     showScreen('mainMenu');
 };
 </script>
