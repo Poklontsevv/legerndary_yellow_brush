@@ -127,6 +127,11 @@
             <button id="level3Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>3</button>
             <button id="level4Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>4</button>
             <button id="level5Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>5</button>
+            <button id="level6Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>6</button>
+            <button id="level7Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>7</button>
+            <button id="level8Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>8</button>
+            <button id="level9Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>9</button>
+            <button id="level10Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>10</button>
         </div>
         <button data-target="modeSelection" class="back-button pixel-button text-xl mt-8 px-8 py-4 w-64">НАЗАД</button>
     </div>
@@ -254,6 +259,11 @@ const level2Button = document.getElementById('level2Button');
 const level3Button = document.getElementById('level3Button');
 const level4Button = document.getElementById('level4Button');
 const level5Button = document.getElementById('level5Button');
+const level6Button = document.getElementById('level6Button');
+const level7Button = document.getElementById('level7Button');
+const level8Button = document.getElementById('level8Button');
+const level9Button = document.getElementById('level9Button');
+const level10Button = document.getElementById('level10Button');
 const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
@@ -345,6 +355,32 @@ const ADVENTURE_TEXT = {
        story:"Портал обрушивает поток монет, но стаи летучих мышей закрывают обзор и сбивают траектории.",
        task:"Соберите 40 монет." }
 };
+ADVENTURE_TEXT[6] = {
+  title: "ИСТОРИЯ 6. Туман сомнений",
+  story: "Молочные облака сгущаются, тревожинки прячутся в полупрозрачный туман. Нужно сохранить холодную голову.",
+  task: "Выжить 75 секунд."
+};
+ADVENTURE_TEXT[7] = {
+  title: "ИСТОРИЯ 7. Охота за звоном",
+  story: "Монеты звенят в каждой струе ветра, но рои летучих мышей ломают траектории. Главное — не гнаться за всем сразу.",
+  task: "Соберите 60 монет."
+};
+ADVENTURE_TEXT[8] = {
+  title: "ИСТОРИЯ 8. Красная тревога",
+  story: "Красные тревожинки наступают плотной волной. Лупите прицельно, экономьте манёвры.",
+  task: "Убейте 25 красных призраков."
+};
+ADVENTURE_TEXT[9] = {
+  title: "ИСТОРИЯ 9. Шквал",
+  story: "Шум, всплески, мельтешение — идеальное место для паники. Но расчёска знает ритм.",
+  task: "Убейте 40 белых, соберите 30 монет и выживите 45 секунд."
+};
+ADVENTURE_TEXT[10] = {
+  title: "ИСТОРИЯ 10. Финал: штиль после бури",
+  story: "Последний порыв ветра — и мир стихнет. Ещё немного выдержки и точности.",
+  task: "Выжить 90 секунд и собрать 50 монет."
+};
+
 
 const adventureConfig = {
   1: { goals:{ kill:{white:20} }, spawns:{ whiteMs:1500 } },
@@ -353,6 +389,57 @@ const adventureConfig = {
   4: { goals:{ surviveSec:60 }, spawns:{ whiteMs:1200, redMs:7000 } },
   5: { goals:{ collect:{coins:40} }, spawns:{ whiteMs:1800, redMs:4000, coinMs:1700, batMs:6000 } }
 };
+adventureConfig[6] = {
+  goals: { surviveSec: 75 },
+  spawns: {
+    whiteMs: 1400,
+    redMs:   2200,
+    batMs:   5000
+  }
+};
+adventureConfig[7] = {
+  goals: { collect: { coins: 60 } },
+  spawns: {
+    coinMs: 1400,
+    whiteMs:1700,
+    redMs: 3500,
+    batMs: 6000
+  }
+};
+adventureConfig[8] = {
+  goals: { kill: { red: 25 } },
+  spawns: {
+    redMs:  1800,
+    whiteMs:3000,
+    coinMs: 2800
+  }
+};
+adventureConfig[9] = {
+  goals: {
+    kill: { white: 40 },
+    collect: { coins: 30 },
+    surviveSec: 45
+  },
+  spawns: {
+    whiteMs: 900,
+    redMs:   3200,
+    coinMs:  2000,
+    batMs:   4500
+  }
+};
+adventureConfig[10] = {
+  goals: {
+    surviveSec: 90,
+    collect: { coins: 50 }
+  },
+  spawns: {
+    whiteMs: 1200,
+    redMs:   2500,
+    coinMs:  1600,
+    batMs:   4000
+  }
+};
+
 
 
 // Timers & Intervals
@@ -945,11 +1032,10 @@ function unlockLevel(nextLevel) {
 
 function refreshAdventureLevelButtons() {
   const btns = [
-    {n:1, el:document.getElementById('level1Button')},
-    {n:2, el:document.getElementById('level2Button')},
-    {n:3, el:document.getElementById('level3Button')},
-    {n:4, el:document.getElementById('level4Button')},
-    {n:5, el:document.getElementById('level5Button')},
+    {n:1, el:level1Button},{n:2, el:level2Button},{n:3, el:level3Button},
+    {n:4, el:level4Button},{n:5, el:level5Button},
+    {n:6, el:level6Button},{n:7, el:level7Button},{n:8, el:level8Button},
+    {n:9, el:level9Button},{n:10, el:level10Button},
   ];
   btns.forEach(({n, el})=>{
     if (!el) return;
@@ -1515,6 +1601,11 @@ level2Button.addEventListener('click', () => openAdventureModal(2));
 level3Button.addEventListener('click', () => openAdventureModal(3));
 level4Button.addEventListener('click', () => openAdventureModal(4));
 level5Button.addEventListener('click', () => openAdventureModal(5));
+level6Button.addEventListener('click',  () => openAdventureModal(6));
+level7Button.addEventListener('click',  () => openAdventureModal(7));
+level8Button.addEventListener('click',  () => openAdventureModal(8));
+level9Button.addEventListener('click',  () => openAdventureModal(9));
+level10Button.addEventListener('click', () => openAdventureModal(10));
 
 startLevelButton.addEventListener('click', () => {
     gameMode = 'adventure';
