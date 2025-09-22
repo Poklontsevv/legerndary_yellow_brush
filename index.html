@@ -97,8 +97,8 @@
             <div class="flex items-center">
                 <button id="pauseButton" class="w-8 h-8 mr-4 text-white"></button>
                 <div id="livesContainer">ЖИЗНИ: <span id="lives" class="ml-2"></span></div>
-                <div id="adventureProgressContainer" class="hidden">
-                    ПРОГРЕСС: <span id="adventureProgress">0</span> / <span id="adventureGoal">20</span>
+                <div id="adventureProgressContainer" class="hidden text-sm">
+                    ПРОГРЕСС: <span id="adventureProgress"></span>
                 </div>
             </div>
             <div id="asmrContainer" class="flex items-center gap-2">
@@ -125,6 +125,8 @@
             <button id="level1Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64 level-button-unlocked">1</button>
             <button id="level2Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>2</button>
             <button id="level3Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>3</button>
+            <button id="level4Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>4</button>
+            <button id="level5Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>5</button>
         </div>
         <button data-target="modeSelection" class="back-button pixel-button text-xl mt-8 px-8 py-4 w-64">НАЗАД</button>
     </div>
@@ -155,11 +157,10 @@
     <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-20">
         <h2 class="text-5xl text-yellow-400 mb-8" style="text-shadow: 4px 4px 0px #000;">ПОБЕДА</h2>
         <div id="winStars" class="text-5xl mb-12">
-            <span class="text-yellow-400">⭐</span>
-            <span class="text-yellow-400">⭐</span>
-            <span class="text-yellow-400">⭐</span>
         </div>
-        <button id="winToMenuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">В МЕНЮ</button>
+        <button id="winToLevelsButton" class="hidden pixel-button text-xl md:text-2xl px-8 py-4 mb-4">ВЫБОР УРОВНЯ</button>
+        <button id="nextLevelButton" class="hidden pixel-button text-xl md:text-2xl px-8 py-4 mb-4">СЛЕДУЮЩИЙ УРОВЕНЬ</button>
+        <button id="winToMenuButton" class="pixel-button text-xl md:text-2xl px-8 py-4">ГЛАВНОЕ МЕНЮ</button>
     </div>
 
     <!-- Statistics Screen -->
@@ -251,6 +252,8 @@ const adventureSelection = document.getElementById('adventureSelection');
 const level1Button = document.getElementById('level1Button');
 const level2Button = document.getElementById('level2Button');
 const level3Button = document.getElementById('level3Button');
+const level4Button = document.getElementById('level4Button');
+const level5Button = document.getElementById('level5Button');
 const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
@@ -274,7 +277,6 @@ const pauseScreen = document.getElementById('pauseScreen');
 const livesContainer = document.getElementById('livesContainer');
 const adventureProgressContainer = document.getElementById('adventureProgressContainer');
 const adventureProgressEl = document.getElementById('adventureProgress');
-const adventureGoalEl = document.getElementById('adventureGoal');
 // NEW: Pause screen buttons
 const resumeButton = document.getElementById('resumeButton');
 const pauseToMenuButton = document.getElementById('pauseToMenuButton');
@@ -287,6 +289,8 @@ const backFromModalButton = document.getElementById('backFromModalButton');
 const winScreen = document.getElementById('winScreen');
 const winToMenuButton = document.getElementById('winToMenuButton');
 const winStars = document.getElementById('winStars');
+const winToLevelsButton = document.getElementById('winToLevelsButton');
+const nextLevelButton = document.getElementById('nextLevelButton');
 // Stats Elements
 const totalCoinsStat = document.getElementById('totalCoinsStat');
 const relaxNormalStat = document.getElementById('relaxNormalStat');
@@ -322,12 +326,32 @@ let menuClouds = [];
 let lastMenuCloudSpawn = 0;
 // Adventure Mode
 let adventureLevel = 0;
-let enemiesKilled = 0;
-let coinsCollected = 0;
-let adventureGoals = {
-    1: { normalGhosts: 20, coins: 0, redGhosts: 0, blackGhosts: 0 },
-    2: { normalGhosts: 0, coins: 15, redGhosts: 0, blackGhosts: 0 },
-    3: { normalGhosts: 0, coins: 20, redGhosts: 10, blackGhosts: 0 },
+let stateAdventure = { kill:{white:0, red:0, black:0}, collect:{coins:0}, surviveStart:0 };
+
+const ADVENTURE_TEXT = {
+  1: { title:"ИСТОРИЯ 1. Первое столкновение",
+       story:"В добром мире ASMRland начали появляться тревожинки. Легендарная жёлтая расчёска вылетела на защиту добра и спокойствия.",
+       task:"Задачи уровня: поразить 20 белых привидений." },
+  2: { title:"ИСТОРИЯ 2. Сладкая жизнь",
+       story:"Долина сахарных облаков сыплет монеты, но липкая карамель мешает манёврам — тревожинки только этого и ждут.",
+       task:"Соберите 15 монет." },
+  3: { title:"ИСТОРИЯ 3. Битва за покой",
+       story:"Красные тревожинки толще и стреляют. Спокойствие сильнее паники — действуйте размеренно.",
+       task:"Убейте 10 красных призраков и соберите 20 монет." },
+  4: { title:"ИСТОРИЯ 4. Тихий шторм",
+       story:"Ветер усиливается, небо темнеет — тишина становится оружием. Нужно переждать шквал.",
+       task:"Выжить 60 секунд." },
+  5: { title:"ИСТОРИЯ 5. Монетный ливень",
+       story:"Портал обрушивает поток монет, но стаи летучих мышей закрывают обзор и сбивают траектории.",
+       task:"Соберите 40 монет." }
+};
+
+const adventureConfig = {
+  1: { goals:{ kill:{white:20} }, spawns:{ whiteMs:1500 } },
+  2: { goals:{ collect:{coins:15} }, spawns:{ coinMs:2000, whiteMs:3500 } },
+  3: { goals:{ kill:{red:10}, collect:{coins:20} }, spawns:{ redMs:2500, whiteMs:4000, coinMs:3000 } },
+  4: { goals:{ surviveSec:60 }, spawns:{ whiteMs:1200, redMs:7000 } },
+  5: { goals:{ collect:{coins:40} }, spawns:{ whiteMs:1800, redMs:4000, coinMs:1700, batMs:6000 } }
 };
 
 
@@ -362,6 +386,10 @@ const defaultGameData = {
         unlockedBullets: ['classic'], selectedBullet: 'classic',
         unlockedTrails: ['none'], selectedTrail: 'none',
         unlockedBackgrounds: ['default'], selectedBackground: 'default' 
+    },
+    adventure: {
+      unlockedLevel: 1,  // максимальный открытый уровень
+      maxLevelAvailable: 10 // на будущее: сколько уровней всего поддерживается
     }
 };
 
@@ -906,60 +934,101 @@ function saveGameData() {
     localStorage.setItem('legendaryCombData_' + userId, JSON.stringify(gameData));
 }
 
+function unlockLevel(nextLevel) {
+  if (!gameData.adventure) gameData.adventure = { unlockedLevel: 1, maxLevelAvailable: 10 };
+  if (nextLevel > gameData.adventure.unlockedLevel) {
+    gameData.adventure.unlockedLevel = nextLevel;
+    saveGameData();
+    refreshAdventureLevelButtons();
+  }
+}
+
+function refreshAdventureLevelButtons() {
+  const btns = [
+    {n:1, el:document.getElementById('level1Button')},
+    {n:2, el:document.getElementById('level2Button')},
+    {n:3, el:document.getElementById('level3Button')},
+    {n:4, el:document.getElementById('level4Button')},
+    {n:5, el:document.getElementById('level5Button')},
+  ];
+  btns.forEach(({n, el})=>{
+    if (!el) return;
+    el.disabled = n > (gameData.adventure?.unlockedLevel || 1);
+    if (el.disabled) el.classList.remove('level-button-unlocked');
+    else el.classList.add('level-button-unlocked');
+  });
+}
+
 // --- Game Functions ---
 let backgroundDrawer;
 function init() {
+    // 1) СБРОС СОСТОЯНИЙ
+    isGameOver = false;
+    isPaused = false;
+
     const uiHeight = document.getElementById('uiBar').offsetHeight;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - uiHeight;
-    
-    backgroundDrawer = SHOP_ITEMS.backgrounds.find(bg => bg.id === gameData.shop.selectedBackground);
+
+    // 3) НАДЁЖНО ВЫБИРАЕМ ФОН
+    backgroundDrawer =
+      SHOP_ITEMS.backgrounds.find(bg => bg.id === (gameData.shop.selectedBackground || 'default'))
+      || SHOP_ITEMS.backgrounds[0];
     if (backgroundDrawer.init) backgroundDrawer.init(canvas, ctx);
 
     lives = 3; score = 0; collectedLetters = new Set(); asmrActive = false; asmrEndTime = 0;
     player = new Player(); 
-    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = []; clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
+    bullets = []; enemies = []; enemyBullets = []; collectibles = []; particles = [];
+    clouds = []; foregroundClouds = []; trailParticles = []; bats = []; blackGhost = null;
     challengeTimer = 0; challengeMinute = 0; speedMultiplier = 1.0; enemySpawnRate = 2000;
     lastBlackGhostSpawn = 0; blackGhostSpawnRate = Math.random() * 30000 + 60000;
-    enemiesKilled = 0;
-    coinsCollected = 0;
+
+    if (gameMode === 'adventure') {
+        stateAdventure = { kill:{white:0, red:0, black:0}, collect:{coins:0}, surviveStart:0 };
+        const currentGoals = adventureConfig[adventureLevel]?.goals || {};
+        if (currentGoals.surviveSec) stateAdventure.surviveStart = performance.now();
+
+        // 2) СБРОС ТАЙМЕРОВ SPAWN
+        spawnAdventure._t = {};
+    }
 
     updateUI();
-    togglePause(false); // Make sure pause screen is hidden
-    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    togglePause(false);
+    if (gameLoopId) cancelAnimationFrame(gameLoopId);
     gameLoop(0);
 }
-function spawnEntities(timestamp) {
-    const goal = adventureGoals[adventureLevel];
-    if (gameMode === 'adventure') {
-        let spawnChance = Math.random();
-        if (adventureLevel === 1 && enemiesKilled < goal.normalGhosts) {
-             if (timestamp - lastEnemySpawn > 1500) { enemies.push(new Enemy()); lastEnemySpawn = timestamp; }
-        } else if (adventureLevel === 2 && coinsCollected < goal.coins) {
-            if (timestamp - lastCoinSpawn > 2000) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
-        } else if (adventureLevel === 3) {
-            if (enemiesKilled < goal.redGhosts) {
-                if (timestamp - lastEnemySpawn > 2500) { enemies.push(new RedEnemy()); lastEnemySpawn = timestamp; }
-            }
-            if (coinsCollected < goal.coins) {
-                 if (timestamp - lastCoinSpawn > 3000) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
-            }
-        }
 
-    } else {
-        // Regular mode enemy spawning
-        if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
-        if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
-        const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
-        if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
-        if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
-        if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
-        if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
-        if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
-            blackGhost = new BlackGhost();
-            lastBlackGhostSpawn = timestamp;
-            blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
-        }
+function spawnAdventure(timestamp){
+  const c = adventureConfig[adventureLevel];
+  if (!c) return;
+
+  if (!spawnAdventure._t) spawnAdventure._t = {};
+  const T = spawnAdventure._t;
+  T.e = T.e || 0; T.re = T.re || 0; T.coin = T.coin || 0; T.bat = T.bat || 0;
+
+  if (c.spawns.whiteMs && timestamp - T.e > c.spawns.whiteMs) { enemies.push(new Enemy()); T.e = timestamp; }
+  if (c.spawns.redMs   && timestamp - T.re > c.spawns.redMs) { enemies.push(new RedEnemy()); T.re = timestamp; }
+  if (c.spawns.coinMs  && timestamp - T.coin > c.spawns.coinMs) { collectibles.push(new Collectible('coin')); T.coin = timestamp; }
+  if (c.spawns.batMs   && timestamp - T.bat > c.spawns.batMs) { bats.push(new Bat()); T.bat = timestamp; }
+}
+function spawnEntities(timestamp) {
+    if (gameMode === 'adventure') { 
+        spawnAdventure(timestamp); 
+        return; 
+    }
+    
+    // Regular mode enemy spawning
+    if (timestamp - lastEnemySpawn > enemySpawnRate) { enemies.push(Math.random() > 0.7 ? new RedEnemy() : new Enemy()); lastEnemySpawn = timestamp; }
+    if (timestamp - lastCoinSpawn > coinSpawnRate) { collectibles.push(new Collectible('coin')); lastCoinSpawn = timestamp; }
+    const availableLetters = ['A', 'S', 'M', 'R'].filter(l => !collectedLetters.has(l));
+    if (!asmrActive && availableLetters.length > 0 && timestamp - lastLetterSpawn > letterSpawnRate) { collectibles.push(new Collectible(availableLetters[Math.floor(Math.random() * availableLetters.length)])); lastLetterSpawn = timestamp; }
+    if (lives < 3 && timestamp - lastHeartSpawn > heartSpawnRate) { collectibles.push(new Collectible('heart')); lastHeartSpawn = timestamp + (Math.random() * 60000 - 30000); }
+    if (timestamp - lastCloudSpawn > cloudSpawnRate) { clouds.push(new Cloud()); if (Math.random() > 0.6) foregroundClouds.push(new ForegroundCloud()); lastCloudSpawn = timestamp; }
+    if (gameData.shop.selectedBackground === 'halloween' && timestamp - lastBatSpawn > batSpawnRate) { bats.push(new Bat()); lastBatSpawn = timestamp; }
+    if (blackGhost === null && timestamp - lastBlackGhostSpawn > blackGhostSpawnRate) {
+        blackGhost = new BlackGhost();
+        lastBlackGhostSpawn = timestamp;
+        blackGhostSpawnRate = Math.random() * 30000 + 60000; // Reset for next spawn
     }
 }
 function handleShooting(timestamp) {
@@ -978,20 +1047,18 @@ function checkCollisions() {
                 const enemy = enemies[j];
                 
                 if (gameMode === 'adventure') {
-                    if (adventureLevel === 1) { // Lvl 1: only white ghosts
-                        enemiesKilled++;
-                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
-                        enemies.splice(j, 1);
-                    } else if (adventureLevel === 3) { // Lvl 3: red ghosts
+                    if (enemy instanceof RedEnemy) {
                         enemy.health--;
                         if (enemy.health <= 0) {
-                            enemiesKilled++;
+                            stateAdventure.kill.red++;
                             createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, '#ef4444');
                             enemies.splice(j, 1);
                         }
+                    } else {
+                        stateAdventure.kill.white++;
+                        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                        enemies.splice(j, 1);
                     }
-                    updateUI(); // Update counter
-                    checkAdventureWinCondition();
                 } else {
                     if (enemy instanceof RedEnemy) {
                         enemy.health--;
@@ -1008,6 +1075,7 @@ function checkCollisions() {
                     }
                 }
                 bullets.splice(i, 1);
+                updateUI();
                 break;
             }
         }
@@ -1020,9 +1088,7 @@ function checkCollisions() {
             const item = collectibles[i];
             if (item.type === 'coin') {
                 if (gameMode === 'adventure') {
-                    coinsCollected++;
-                    updateUI();
-                    checkAdventureWinCondition();
+                    stateAdventure.collect.coins++;
                 } else {
                     score++;
                     gameData.stats.totalCoins++; 
@@ -1030,7 +1096,8 @@ function checkCollisions() {
                 }
             } else if (item.type === 'heart') { if (lives < 3) lives++; }
             else { collectedLetters.add(item.type); if (collectedLetters.size === 4) { asmrActive = true; asmrEndTime = Date.now() + 20000; } }
-            collectibles.splice(i, 1); updateUI();
+            collectibles.splice(i, 1); 
+            updateUI();
         }
     }
     if (blackGhost) {
@@ -1041,9 +1108,15 @@ function checkCollisions() {
                 if (blackGhost.health <= 0) {
                     createExplosion(blackGhost.x + blackGhost.width / 2, blackGhost.y + blackGhost.height / 2, '#4a044e');
                     for(let k=0; k<5; k++) { collectibles.push(new Collectible('coin', blackGhost.x + (Math.random() * blackGhost.width), blackGhost.y + (Math.random() * blackGhost.height))); }
-                    blackGhost = null;
-                    gameData.stats.kills[gameMode].black++;
+                    
+                    if(gameMode === 'adventure'){
+                        stateAdventure.kill.black++;
+                    } else {
+                        gameData.stats.kills[gameMode].black++;
+                    }
                     saveGameData();
+                    blackGhost = null;
+                    updateUI();
                 }
                 break;
             }
@@ -1052,39 +1125,78 @@ function checkCollisions() {
              // Player takes damage, black ghost remains
         }
     }
+
+    if (gameMode === 'adventure' && checkAdventureWin()) handleVictory();
 }
+
+function checkAdventureWin() {
+  const c = adventureConfig[adventureLevel]; if (!c) return false;
+  const s = stateAdventure;
+
+  if (c.goals.kill) {
+    if (c.goals.kill.white && s.kill.white < c.goals.kill.white) return false;
+    if (c.goals.kill.red   && s.kill.red   < c.goals.kill.red)   return false;
+    if (c.goals.kill.black && s.kill.black < c.goals.kill.black) return false;
+  }
+  if (c.goals.collect) {
+    if (c.goals.collect.coins && s.collect.coins < c.goals.collect.coins) return false;
+  }
+  if (c.goals.surviveSec) {
+    const elapsed = (performance.now() - s.surviveStart) / 1000;
+    if (elapsed < c.goals.surviveSec) return false;
+  }
+  return true;
+}
+
 function createExplosion(x, y, color) { for (let i = 0; i < 25; i++) particles.push(new Particle(x, y, color)); }
 function gameOver() {
     isGameOver = true;
     cancelAnimationFrame(gameLoopId);
     
-    // Check for new best score
     if (score > gameData.stats.bestScore[gameMode]) {
         gameData.stats.bestScore[gameMode] = score;
         saveGameData();
     }
     
+    if (gameMode === 'adventure') {
+        menuButton.textContent = 'ВЫБОР УРОВНЯ';
+        menuButton.onclick = () => showScreen('adventureSelection');
+        restartButton.textContent = 'ПОПРОБОВАТЬ СНОВА';
+        restartButton.onclick = () => {
+            showScreen('gameContainer');
+            init();
+        }
+    } else {
+        menuButton.textContent = 'В МЕНЮ';
+        menuButton.onclick = () => showScreen('mainMenu');
+        restartButton.textContent = 'НАЧАТЬ ЗАНОВО';
+        restartButton.onclick = () => showScreen('modeSelection');
+    }
+
     showScreen('gameOverScreen');
     finalScoreEl.textContent = score;
 }
-function checkAdventureWinCondition() {
-    const goal = adventureGoals[adventureLevel];
-    if (adventureLevel === 1 && enemiesKilled >= goal.normalGhosts) {
-        handleVictory();
-    } else if (adventureLevel === 2 && coinsCollected >= goal.coins) {
-        handleVictory();
-    } else if (adventureLevel === 3 && enemiesKilled >= goal.redGhosts && coinsCollected >= goal.coins) {
-        handleVictory();
-    }
-}
+
 function handleVictory() {
     isGameOver = true;
     cancelAnimationFrame(gameLoopId);
+    
+    winToLevelsButton.classList.add('hidden');
+    nextLevelButton.classList.add('hidden');
+
+    if (gameMode === 'adventure') {
+        unlockLevel(adventureLevel + 1);
+        const hasNext = (adventureLevel + 1) <= Object.keys(adventureConfig).length;
+        
+        winToLevelsButton.classList.remove('hidden');
+        if (hasNext) {
+            nextLevelButton.classList.remove('hidden');
+        }
+    }
+    
     showScreen('winScreen');
     winStars.innerHTML = '';
-    // Unlock next level and give a reward
     for(let i=0; i<3; i++) { winStars.innerHTML += '<span class="text-yellow-400">⭐</span>'; }
-    // TODO: unlock next level
 }
 function gameLoop(timestamp) {
     if (isGameOver) return;
@@ -1102,9 +1214,8 @@ function gameLoop(timestamp) {
         if (blackGhost) blackGhost.update();
         foregroundClouds.forEach(c => c.update());
         
-        // Draw order
         const allObjects = [clouds, trailParticles, bats, enemies];
-        if (blackGhost) allObjects.push([blackGhost]); // Add as an array to be iterated
+        if (blackGhost) allObjects.push([blackGhost]); 
         allObjects.push(player, collectibles, bullets, enemyBullets, particles);
         
         allObjects.forEach(arr => { 
@@ -1116,7 +1227,6 @@ function gameLoop(timestamp) {
         foregroundClouds.forEach(c => c.draw(ctx)); 
         if (isTouchDevice) drawJoystick();
         
-        // Filtering
         bullets = bullets.filter(b => b.x < canvas.width); enemyBullets = enemyBullets.filter(b => b.x + b.width > 0);
         enemies = enemies.filter(e => e.x + e.width > 0); collectibles = collectibles.filter(c => c.x + c.size > 0);
         particles = particles.filter(p => p.life > 0); trailParticles = trailParticles.filter(p => p.life > 0);
@@ -1125,6 +1235,7 @@ function gameLoop(timestamp) {
         bats = bats.filter(b => b.x + b.width > 0);
         
         checkCollisions();
+        if (gameMode === 'adventure') updateUI();
     }
     
     gameLoopId = requestAnimationFrame(gameLoop);
@@ -1132,7 +1243,7 @@ function gameLoop(timestamp) {
 
 // --- Menu Loop ---
 function startMenuLoop() {
-    stopMenuLoop(); // Ensure no multiple loops
+    stopMenuLoop(); 
     menuBgCanvas.width = window.innerWidth;
     menuBgCanvas.height = window.innerHeight;
     menuClouds = [];
@@ -1181,15 +1292,25 @@ function updateUI() {
         scoreEl.textContent = '---';
         asmrContainer.classList.add('hidden');
         adventureProgressContainer.classList.remove('hidden');
-        const goal = adventureGoals[adventureLevel];
-        if (adventureLevel === 1) {
-            adventureProgressEl.textContent = `${enemiesKilled} / ${goal.normalGhosts}`;
-        } else if (adventureLevel === 2) {
-            adventureProgressEl.textContent = `${coinsCollected} / ${goal.coins}`;
-        } else if (adventureLevel === 3) {
-            adventureProgressEl.textContent = `Красные: ${enemiesKilled} / ${goal.redGhosts}, Монеты: ${coinsCollected} / ${goal.coins}`;
+        
+        const goals = adventureConfig[adventureLevel].goals;
+        const s = stateAdventure;
+        let progressText = [];
+
+        if (goals.kill) {
+            if(goals.kill.white) progressText.push(`Белые: ${s.kill.white}/${goals.kill.white}`);
+            if(goals.kill.red) progressText.push(`Красные: ${s.kill.red}/${goals.kill.red}`);
+            if(goals.kill.black) progressText.push(`Чёрные: ${s.kill.black}/${goals.kill.black}`);
         }
-        adventureGoalEl.textContent = '---'; // Since it's now dynamic
+        if (goals.collect) {
+            if(goals.collect.coins) progressText.push(`Монеты: ${s.collect.coins}/${goals.collect.coins}`);
+        }
+        if (goals.surviveSec) {
+            const elapsed = s.surviveStart > 0 ? Math.floor((performance.now() - s.surviveStart) / 1000) : 0;
+            progressText.push(`Время: ${elapsed}/${goals.surviveSec}`);
+        }
+        adventureProgressEl.textContent = progressText.join(', ');
+
     } else {
         livesContainer.classList.remove('hidden');
         adventureProgressContainer.classList.add('hidden');
@@ -1243,9 +1364,6 @@ function showScreen(screenId) {
 }
 function updateStatsScreen() {
     const stats = gameData.stats;
-    const totalRelaxKills = stats.kills.relax.normal + stats.kills.relax.red + stats.kills.relax.black;
-    const totalChallengeKills = stats.kills.challenge.normal + stats.kills.challenge.red + stats.kills.challenge.black;
-
     totalCoinsStat.textContent = stats.totalCoins;
     relaxNormalStat.textContent = stats.kills.relax.normal;
     relaxRedStat.textContent = stats.kills.relax.red;
@@ -1335,27 +1453,6 @@ function purchaseWithStars(categoryKey, unlockedKey, selectedKey, item) {
     try {
         window.Telegram.WebApp.showConfirm(`Вы уверены, что хотите купить "${item.name}" за ${item.starCost} Telegram Stars?`, (confirmed) => {
             if (confirmed) {
-                // ЭТО МЕСТО ДЛЯ НАСТОЯЩЕЙ ОПЛАТЫ
-                // 1. Ваш сервер должен сгенерировать ссылку для оплаты (invoice link)
-                // 2. Вы получаете эту ссылку и вызываете метод ниже:
-                /*
-                const invoiceLink = 'ССЫЛКА_ОТ_ВАШЕГО_СЕРВЕРА';
-                window.Telegram.WebApp.openInvoice(invoiceLink, (status) => {
-                    if (status === 'paid') {
-                        // ПЛАТЁЖ УСПЕШЕН
-                        gameData.shop[unlockedKey].push(item.id);
-                        gameData.shop[selectedKey] = item.id;
-                        saveGameData();
-                        renderAllShops();
-                        hidePurchaseModal();
-                    } else {
-                        // Платёж не удался или был отменён
-                        window.Telegram.WebApp.showAlert('Платёж не удался.');
-                    }
-                });
-                */
-
-                // СИМУЛЯЦИЯ УСПЕШНОЙ ПОКУПКИ (УДАЛИТЬ ДЛЯ РЕАЛЬНОГО ПРИЛОЖЕНИЯ)
                 console.log(`Симуляция покупки "${item.name}" за ${item.starCost} Stars`);
                 gameData.shop[unlockedKey].push(item.id);
                 gameData.shop[selectedKey] = item.id;
@@ -1370,6 +1467,15 @@ function purchaseWithStars(categoryKey, unlockedKey, selectedKey, item) {
     }
 }
 
+function openAdventureModal(level){
+  adventureLevel = level;
+  const t = ADVENTURE_TEXT[level];
+  if (!t) return;
+  adventureModalTitle.textContent = t.title;
+  adventureModalStory.textContent = t.story;
+  adventureModalTask.textContent = t.task;
+  showScreen('adventureModal');
+}
 
 // --- Controls & Event Handlers ---
 function togglePause(forcePause) {
@@ -1391,43 +1497,25 @@ settingsButton.addEventListener('click', () => showScreen('settingsScreen'));
 relaxModeButton.addEventListener('click', () => { gameMode = 'relax'; showScreen('gameContainer'); init(); });
 challengeModeButton.addEventListener('click', () => { gameMode = 'challenge'; showScreen('gameContainer'); init(); });
 adventureModeButton.addEventListener('click', () => showScreen('adventureSelection'));
-restartButton.addEventListener('click', () => showScreen('modeSelection'));
-menuButton.addEventListener('click', () => showScreen('mainMenu'));
 document.querySelectorAll('.back-button').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.target));
 });
 pauseButton.addEventListener('click', () => togglePause());
-// NEW: Event listeners for pause screen buttons
 resumeButton.addEventListener('click', () => togglePause(false));
 pauseToMenuButton.addEventListener('click', () => {
-    // Save current game progress and go to main menu
     if (score > gameData.stats.bestScore[gameMode]) {
         gameData.stats.bestScore[gameMode] = score;
     }
     saveGameData();
     showScreen('mainMenu');
 });
-level1Button.addEventListener('click', () => {
-    adventureLevel = 1;
-    adventureModalTitle.textContent = "ИСТОРИЯ 1.";
-    adventureModalStory.textContent = "В добром мире ASMRland начали появляться ТРЕВОЖИНКИ. И легендарная жёлтая расчёска вылетела на защиту добра и спокойствия.";
-    adventureModalTask.textContent = `Задачи уровня: поразить ${adventureGoals[1].normalGhosts} белых привидений.`;
-    showScreen('adventureModal');
-});
-level2Button.addEventListener('click', () => {
-    adventureLevel = 2;
-    adventureModalTitle.textContent = "ИСТОРИЯ 2. Сладкая жизнь";
-    adventureModalStory.textContent = "Путешествуя по ASMRland, легендарная расчёска наткнулась на облака, полные монет! Нужно собрать их все.";
-    adventureModalTask.textContent = `Задачи уровня: собрать ${adventureGoals[2].coins} монет.`;
-    showScreen('adventureModal');
-});
-level3Button.addEventListener('click', () => {
-    adventureLevel = 3;
-    adventureModalTitle.textContent = "ИСТОРИЯ 3. Битва за покой";
-    adventureModalStory.textContent = "Злые красные призраки-тревожинки стали гораздо сильнее, но и расчёска стала мощнее. Нужно сокрушить их и забрать сокровища.";
-    adventureModalTask.textContent = `Задачи уровня: убить ${adventureGoals[3].redGhosts} красных призраков и собрать ${adventureGoals[3].coins} монет.`;
-    showScreen('adventureModal');
-});
+
+level1Button.addEventListener('click', () => openAdventureModal(1));
+level2Button.addEventListener('click', () => openAdventureModal(2));
+level3Button.addEventListener('click', () => openAdventureModal(3));
+level4Button.addEventListener('click', () => openAdventureModal(4));
+level5Button.addEventListener('click', () => openAdventureModal(5));
+
 startLevelButton.addEventListener('click', () => {
     gameMode = 'adventure';
     showScreen('gameContainer');
@@ -1435,6 +1523,14 @@ startLevelButton.addEventListener('click', () => {
 });
 backFromModalButton.addEventListener('click', () => showScreen('adventureSelection'));
 winToMenuButton.addEventListener('click', () => showScreen('mainMenu'));
+if (winToLevelsButton) winToLevelsButton.addEventListener('click', () => showScreen('adventureSelection'));
+if (nextLevelButton) nextLevelButton.addEventListener('click', () => {
+  if (gameMode === 'adventure') {
+    adventureLevel = Math.min(adventureLevel + 1, gameData.adventure.maxLevelAvailable || 10);
+    showScreen('gameContainer');
+    init();
+  }
+});
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && !isGameOver && !isPaused && gameContainer.offsetParent !== null) {
         togglePause(true);
@@ -1473,8 +1569,10 @@ window.onload = async () => {
     }
     
     loadGameData();
+    refreshAdventureLevelButtons();
     showScreen('mainMenu');
 };
 </script>
 </body>
 </html>
+
