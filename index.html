@@ -59,6 +59,23 @@
         .level-button { border: 4px solid #4b5563; background-color: #334155; }
         .level-button.completed { border-color: #34d399; }
         .level-button-unlocked { cursor: pointer; }
+
+        /* Квадратные тайлы уровней */
+        .level-tile {
+          position: relative;
+          aspect-ratio: 1 / 1;           /* современная поддержка */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: clamp(16px, 2.5vw, 28px);
+          user-select: none;
+        }
+        /* Состояния */
+        .level-tile.locked {
+          filter: grayscale(1) brightness(0.7);
+          cursor: default;
+        }
+        .level-tile.unlocked { cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center h-screen">
@@ -120,20 +137,17 @@
     
     <!-- Adventure Mode Level Selection -->
     <div id="adventureSelection" class="hidden text-center p-4 relative z-10">
-        <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-12">ВЫБЕРИТЕ УРОВЕНЬ</h2>
-        <div class="flex flex-col items-center gap-4">
-            <button id="level1Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64 level-button-unlocked">1</button>
-            <button id="level2Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>2</button>
-            <button id="level3Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>3</button>
-            <button id="level4Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>4</button>
-            <button id="level5Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>5</button>
-            <button id="level6Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>6</button>
-            <button id="level7Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>7</button>
-            <button id="level8Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>8</button>
-            <button id="level9Button"  class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>9</button>
-            <button id="level10Button" class="level-button pixel-button text-xl md:text-2xl px-8 py-4 w-64" disabled>10</button>
-        </div>
-        <button data-target="modeSelection" class="back-button pixel-button text-xl mt-8 px-8 py-4 w-64">НАЗАД</button>
+      <h2 class="text-3xl md:text-5xl font-bold text-yellow-400 mb-6">ВЫБЕРИТЕ УРОВЕНЬ</h2>
+
+      <!-- Обёртка с прокруткой -->
+      <div id="adventureGridWrap"
+           class="mx-auto max-w-3xl w-full overflow-y-auto"
+           style="max-height: calc(100vh - 220px); touch-action: pan-y;">
+        <!-- Сетка 3 колонки; тайлы генерируются в JS -->
+        <div id="adventureGrid" class="grid grid-cols-3 gap-4 px-2"></div>
+      </div>
+
+      <button data-target="modeSelection" class="back-button pixel-button text-xl mt-6 px-8 py-4 w-64">НАЗАД</button>
     </div>
 
     <!-- Adventure Level Description Modal -->
@@ -254,16 +268,7 @@ const relaxModeButton = document.getElementById('relaxModeButton');
 const challengeModeButton = document.getElementById('challengeModeButton');
 const adventureModeButton = document.getElementById('adventureModeButton');
 const adventureSelection = document.getElementById('adventureSelection');
-const level1Button = document.getElementById('level1Button');
-const level2Button = document.getElementById('level2Button');
-const level3Button = document.getElementById('level3Button');
-const level4Button = document.getElementById('level4Button');
-const level5Button = document.getElementById('level5Button');
-const level6Button = document.getElementById('level6Button');
-const level7Button = document.getElementById('level7Button');
-const level8Button = document.getElementById('level8Button');
-const level9Button = document.getElementById('level9Button');
-const level10Button = document.getElementById('level10Button');
+const adventureGrid = document.getElementById('adventureGrid');
 const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const canvas = document.getElementById('gameCanvas');
@@ -1030,18 +1035,37 @@ function unlockLevel(nextLevel) {
   }
 }
 
-function refreshAdventureLevelButtons() {
-  const btns = [
-    {n:1, el:level1Button},{n:2, el:level2Button},{n:3, el:level3Button},
-    {n:4, el:level4Button},{n:5, el:level5Button},
-    {n:6, el:level6Button},{n:7, el:level7Button},{n:8, el:level8Button},
-    {n:9, el:level9Button},{n:10, el:level10Button},
-  ];
-  btns.forEach(({n, el})=>{
-    if (!el) return;
-    el.disabled = n > (gameData.adventure?.unlockedLevel || 1);
-    if (el.disabled) el.classList.remove('level-button-unlocked');
-    else el.classList.add('level-button-unlocked');
+function buildAdventureGrid(){
+  if(!adventureGrid) return;
+  adventureGrid.innerHTML = '';
+  const total = gameData?.adventure?.maxLevelAvailable || 10;
+
+  for(let n=1; n<=total; n++){
+    const btn = document.createElement('button');
+    btn.className = 'level-button pixel-button level-tile';
+    btn.dataset.level = String(n);
+    btn.textContent = n;
+    
+    btn.addEventListener('click', ()=>{
+      if(btn.classList.contains('locked')) return;
+      openAdventureModal(n);
+    });
+
+    adventureGrid.appendChild(btn);
+  }
+}
+
+function refreshAdventureLevelButtons(){
+  const unlocked = gameData?.adventure?.unlockedLevel || 1;
+  if(!adventureGrid) return;
+
+  adventureGrid.querySelectorAll('[data-level]').forEach(btn=>{
+    const n = Number(btn.dataset.level);
+    const isUnlocked = n <= unlocked;
+    btn.disabled = !isUnlocked;
+    btn.classList.toggle('locked', !isUnlocked);
+    btn.classList.toggle('unlocked', isUnlocked);
+    btn.classList.toggle('level-button-unlocked', isUnlocked); // поддержка старого стиля
   });
 }
 
@@ -1425,11 +1449,10 @@ function showScreen(screenId) {
         menuBgCanvas.classList.add('hidden');
     }
 
-    if (screenId === 'settingsScreen') {
-        renderAllShops();
-        document.body.style.touchAction = 'auto';
+    if (screenId === 'settingsScreen' || screenId === 'adventureSelection') {
+      document.body.style.touchAction = 'pan-y';
     } else {
-        document.body.style.touchAction = 'none';
+      document.body.style.touchAction = 'none';
     }
 
     if (screenId === 'statsScreen') updateStatsScreen();
@@ -1596,17 +1619,6 @@ pauseToMenuButton.addEventListener('click', () => {
     showScreen('mainMenu');
 });
 
-level1Button.addEventListener('click', () => openAdventureModal(1));
-level2Button.addEventListener('click', () => openAdventureModal(2));
-level3Button.addEventListener('click', () => openAdventureModal(3));
-level4Button.addEventListener('click', () => openAdventureModal(4));
-level5Button.addEventListener('click', () => openAdventureModal(5));
-level6Button.addEventListener('click',  () => openAdventureModal(6));
-level7Button.addEventListener('click',  () => openAdventureModal(7));
-level8Button.addEventListener('click',  () => openAdventureModal(8));
-level9Button.addEventListener('click',  () => openAdventureModal(9));
-level10Button.addEventListener('click', () => openAdventureModal(10));
-
 startLevelButton.addEventListener('click', () => {
     gameMode = 'adventure';
     showScreen('gameContainer');
@@ -1660,6 +1672,7 @@ window.onload = async () => {
     }
     
     loadGameData();
+    buildAdventureGrid();
     refreshAdventureLevelButtons();
     showScreen('mainMenu');
 };
